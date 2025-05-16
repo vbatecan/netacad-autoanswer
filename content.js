@@ -49,7 +49,7 @@ Possible Answers:
       return data.candidates[0].content.parts[0].text.trim();
     } else {
       console.error("Unexpected response structure from Gemini API:", data);
-      return "Could not extract answer from Gemini response structure.";
+      return "Error: Could not extract answer from Gemini response structure.";
     }
   } catch (error) {
     console.error("Error fetching from Gemini API:", error);
@@ -58,14 +58,13 @@ Possible Answers:
 }
 
 async function processSingleQuestion(mcqViewElement, index, apiKey) {
-  let questionText = "Question text not found";
+  let questionText = "Error: Question text could not be extracted."; // Default error
   let answerElements = [];
   let answerTexts = [];
+  let extractionError = null; // To store any error during extraction
 
   try {
     if (mcqViewElement && mcqViewElement.shadowRoot) {
-      // Try to find the question text
-      // Path: mcq-view -> shadowRoot -> base-view -> shadowRoot -> div.component__body-inner.mcq__body-inner OR div.mcq__prompt
       const baseView = mcqViewElement.shadowRoot.querySelector(
         'base-view[type="component"]'
       );
@@ -80,32 +79,30 @@ async function processSingleQuestion(mcqViewElement, index, apiKey) {
         if (!questionTextElement) {
           questionTextElement = baseView.shadowRoot.querySelector(".prompt");
         }
-        // Add a more generic fallback if specific selectors fail
         if (!questionTextElement) {
           const potentialTexts = Array.from(
             baseView.shadowRoot.querySelectorAll("div, p, span")
           )
             .map((el) => el.innerText.trim())
-            .filter((text) => text.length > 20); // Heuristic for question-like text
+            .filter((text) => text.length > 20);
           if (potentialTexts.length > 0) {
             questionText = potentialTexts[0];
             console.log(
               `Used generic text search for question ${
                 index + 1
-              }: ${questionText}`
+              }: ${questionText.substring(0, 50)}...`
             );
           } else {
             console.warn(
               `Question text element not found via specific or generic selectors in base-view for mcq ${
                 index + 1
-              }.`
+              }. questionText remains: '${questionText}'`
             );
           }
         } else {
           questionText = questionTextElement.innerText.trim();
         }
       } else {
-        // Fallback: If no base-view, or base-view has no shadowRoot, try finding question text directly in mcqViewElement.shadowRoot
         let directQuestionEl = mcqViewElement.shadowRoot.querySelector(
           "div.component__body-inner.mcq__body-inner"
         );
@@ -126,176 +123,217 @@ async function processSingleQuestion(mcqViewElement, index, apiKey) {
             console.log(
               `Used generic text search directly in mcq-view shadowRoot for question ${
                 index + 1
-              }: ${questionText}`
+              }: ${questionText.substring(0, 50)}...`
             );
           } else {
             console.warn(
               `Question text element not found in mcq ${
                 index + 1
-              } (no base-view or text not in mcq-view shadowRoot directly).`
+              } (no base-view or text not in mcq-view shadowRoot directly). questionText remains: '${questionText}'`
             );
           }
         }
       }
-
-      // Get answers from mcqViewElement's shadowRoot
       answerElements = mcqViewElement.shadowRoot.querySelectorAll(
         ".mcq__item-label.js-item-label"
       );
+      if (answerElements.length > 0) {
+        answerElements.forEach((answer) => {
+          answerTexts.push(answer.innerText.trim());
+        });
+      }
     } else {
-      console.warn(
-        `MCQ View element or its shadowRoot is missing for question ${
-          index + 1
-        }`
-      );
+      extractionError = `MCQ View element or its shadowRoot is missing for question ${
+        index + 1
+      }`;
+      console.warn(extractionError);
+      questionText = `Error: ${extractionError}`; // Ensure questionText reflects this error
     }
   } catch (e) {
     console.error(
-      `Error processing question ${index + 1} from mcqViewElement:`,
+      `Error during initial data extraction for question ${index + 1}:`,
       e,
       mcqViewElement
     );
-    questionText = "Error extracting question text.";
+    extractionError =
+      e.message || "Unknown error during question/answer extraction.";
+    questionText = `Error: Problem extracting question/answers. ${extractionError}`;
+    answerTexts = []; // Ensure answerTexts is empty on error
   }
 
-  console.log(`
---- Question ${index + 1} ---`);
-  console.log("Question:", questionText);
+  console.log(`--- Question ${index + 1} ---`);
+  console.log(
+    "Question:",
+    questionText.startsWith("Error:")
+      ? questionText
+      : questionText.substring(0, 100) +
+          (questionText.length > 100 ? "..." : "")
+  );
 
-  if (answerElements.length > 0) {
+  if (answerTexts.length > 0) {
     console.log("Possible Answers:");
-    answerElements.forEach((answer, answerIndex) => {
-      const ansText = answer.innerText.trim();
-      answerTexts.push(ansText);
-      console.log(`  ${answerIndex + 1}: ${ansText}`);
+    answerTexts.forEach((ansText, ansIdx) => {
+      console.log(`  ${ansIdx + 1}: ${ansText}`);
     });
+  } else if (!extractionError && !questionText.startsWith("Error:")) {
+    console.log(`  No answer options found for question ${index + 1}.`);
+  }
+  // If extractionError is set, or questionText is an error, console already reflects problem with questionText.
 
-    const uiContainerId = `netacad-ai-q-${index}`;
-    let uiContainer;
-    let aiAnswerDisplay;
-    let refreshButton;
+  const uiContainerId = `netacad-ai-q-${index}`;
+  let uiContainer;
+  let aiAnswerDisplay;
+  let refreshButton;
 
-    // Remove any existing UI for this question before creating a new one
-    if (mcqViewElement && mcqViewElement.shadowRoot) {
-        const existingUi = mcqViewElement.shadowRoot.querySelector(`#${uiContainerId}`);
-        if (existingUi) {
-            console.log(`Removing existing UI for question ${index + 1}`);
-            existingUi.remove();
-        }
+  if (mcqViewElement && mcqViewElement.shadowRoot) {
+    const existingUi = mcqViewElement.shadowRoot.querySelector(
+      `#${uiContainerId}`
+    );
+    if (existingUi) {
+      console.log(`Removing existing UI for question ${index + 1}`);
+      existingUi.remove();
     }
+  }
 
-    uiContainer = document.createElement("div");
-    uiContainer.id = uiContainerId;
-    uiContainer.className = "netacad-ai-assistant-ui";
-    uiContainer.style.marginTop = "15px";
-    uiContainer.style.padding = "10px";
-    uiContainer.style.border = "1px solid #007bff";
-    uiContainer.style.borderRadius = "5px";
-    uiContainer.style.backgroundColor = "#e7f3ff";
-    uiContainer.style.color = "#333"; // Ensure text is visible on light background
+  uiContainer = document.createElement("div");
+  uiContainer.id = uiContainerId;
+  uiContainer.className = "netacad-ai-assistant-ui";
+  uiContainer.style.marginTop = "15px";
+  uiContainer.style.padding = "10px";
+  uiContainer.style.border = "1px solid #007bff";
+  uiContainer.style.borderRadius = "5px";
+  uiContainer.style.backgroundColor = "#e7f3ff";
+  uiContainer.style.color = "#333";
 
-    const titleElement = document.createElement("h5");
-    titleElement.textContent = "AI Assistant";
-    titleElement.style.marginTop = "0px";
-    titleElement.style.marginBottom = "5px";
-    titleElement.style.color = "#0056b3";
-    uiContainer.appendChild(titleElement);
+  const titleElement = document.createElement("h5");
+  titleElement.textContent = "AI Assistant";
+  titleElement.style.marginTop = "0px";
+  titleElement.style.marginBottom = "5px";
+  titleElement.style.color = "#0056b3";
+  uiContainer.appendChild(titleElement);
 
-    aiAnswerDisplay = document.createElement("p");
-    aiAnswerDisplay.className = "ai-answer-display";
-    aiAnswerDisplay.style.margin = "5px 0";
-    aiAnswerDisplay.style.fontStyle = "italic";
-    uiContainer.appendChild(aiAnswerDisplay);
+  aiAnswerDisplay = document.createElement("p");
+  aiAnswerDisplay.className = "ai-answer-display";
+  aiAnswerDisplay.style.margin = "5px 0";
+  aiAnswerDisplay.style.fontStyle = "italic";
+  uiContainer.appendChild(aiAnswerDisplay);
 
-    refreshButton = document.createElement("button");
-    refreshButton.className = "ai-refresh-button";
-    refreshButton.textContent = "Refresh AI Answer";
-    refreshButton.style.padding = "6px 12px";
-    refreshButton.style.border = "none";
-    refreshButton.style.borderRadius = "4px";
-    refreshButton.style.backgroundColor = "#007bff";
-    refreshButton.style.color = "white";
-    refreshButton.style.cursor = "pointer";
-    refreshButton.onmouseover = () =>
-      (refreshButton.style.backgroundColor = "#0056b3");
-    refreshButton.onmouseout = () =>
-      (refreshButton.style.backgroundColor = "#007bff");
-    uiContainer.appendChild(refreshButton);
+  refreshButton = document.createElement("button");
+  refreshButton.className = "ai-refresh-button";
+  refreshButton.textContent = "Refresh AI Answer";
+  refreshButton.style.padding = "6px 12px";
+  refreshButton.style.border = "none";
+  refreshButton.style.borderRadius = "4px";
+  refreshButton.style.backgroundColor = "#007bff";
+  refreshButton.style.color = "white";
+  refreshButton.style.cursor = "pointer";
+  refreshButton.onmouseover = () =>
+    (refreshButton.style.backgroundColor = "#0056b3");
+  refreshButton.onmouseout = () =>
+    (refreshButton.style.backgroundColor = "#007bff");
+  uiContainer.appendChild(refreshButton);
 
-    // Injection logic: Try to append to mcqViewElement's shadowRoot
-    if (mcqViewElement && mcqViewElement.shadowRoot) {
-      mcqViewElement.shadowRoot.appendChild(uiContainer);
+  if (mcqViewElement && mcqViewElement.shadowRoot) {
+    mcqViewElement.shadowRoot.appendChild(uiContainer);
+  } else {
+    console.warn(
+      `mcqViewElement or its shadowRoot not available for UI insertion for question ${
+        index + 1
+      }. Trying fallback.`
+    );
+    const hostElement = mcqViewElement
+      ? mcqViewElement.getRootNode().host
+      : null;
+    if (hostElement && hostElement.parentElement) {
+      if (hostElement.nextSibling) {
+        hostElement.parentElement.insertBefore(
+          uiContainer,
+          hostElement.nextSibling
+        );
+      } else {
+        hostElement.parentElement.appendChild(uiContainer);
+      }
     } else {
       console.warn(
-        `mcqViewElement or its shadowRoot not available for UI insertion for question ${
+        `Fallback UI placement: Appending to document.body for question ${
           index + 1
-        }. Trying fallback.`
+        }. This is a last resort and might not be ideally placed.`
       );
-      const hostElement = mcqViewElement
-        ? mcqViewElement.getRootNode().host
-        : null;
-      if (hostElement && hostElement.parentElement) {
-        // Insert after the host element (e.g., <block-view>)
-        if (hostElement.nextSibling) {
-          hostElement.parentElement.insertBefore(
-            uiContainer,
-            hostElement.nextSibling
-          );
-        } else {
-          hostElement.parentElement.appendChild(uiContainer);
-        }
-      } else {
-        console.warn(
-          `Fallback UI placement: Appending to document.body for question ${
-            index + 1
-          }.`
-        );
-        document.body.appendChild(uiContainer); // Last resort
-      }
+      document.body.appendChild(uiContainer);
+    }
+  }
+
+  const refreshAction = async () => {
+    if (!aiAnswerDisplay) return;
+    if (!apiKey) {
+      aiAnswerDisplay.textContent =
+        "Error: API Key not set. Please set it in the extension popup.";
+      console.warn(`refreshAction for Q${index + 1}: API Key not available.`);
+      return;
     }
 
-    const refreshAction = async () => {
-      if (!aiAnswerDisplay) return;
-      if (!apiKey) {
-        aiAnswerDisplay.textContent =
-          "API Key not set. Please set it in the extension popup.";
-        console.warn(`refreshAction for Q${index+1}: API Key not available.`);
-        return;
-      }
-      aiAnswerDisplay.textContent = "Asking Gemini AI...";
-      console.log(`refreshAction for Q${index+1}: Asking Gemini AI for question: "${questionText.substring(0,50)}..."`);
-      const newAiAnswer = await getAiAnswer(questionText, answerTexts, apiKey);
-      
-      console.log(`AI Answer received for Q${index + 1}: '${newAiAnswer}' (Full text)`);
+    if (extractionError) {
+      aiAnswerDisplay.textContent = `Error: ${extractionError}`;
+      return;
+    }
+    if (questionText.startsWith("Error:")) {
+      aiAnswerDisplay.textContent = questionText;
+      return;
+    }
+    if (answerTexts.length === 0) {
+      aiAnswerDisplay.textContent =
+        "Error: No answer options found for this question.";
+      return;
+    }
 
-      if (newAiAnswer && newAiAnswer.trim() !== "" && !newAiAnswer.toLowerCase().startsWith("error:")) {
-        aiAnswerDisplay.textContent = `AI Suggestion: ${newAiAnswer}`;
-      } else if (newAiAnswer && newAiAnswer.toLowerCase().startsWith("error:")) {
-        aiAnswerDisplay.textContent = newAiAnswer; // Show the full error from getAiAnswer
-        console.error(`Error displayed for Q${index+1}: ${newAiAnswer}`);
-      } else {
-        aiAnswerDisplay.textContent = "AI Suggestion: No answer received or answer was empty.";
-        console.warn(`AI returned empty or whitespace-only answer for Q${index+1}. Original response: '${newAiAnswer}'`);
-      }
-    };
+    aiAnswerDisplay.textContent = "Asking Gemini AI...";
+    console.log(
+      `refreshAction for Q${
+        index + 1
+      }: Asking Gemini AI for question: "${questionText.substring(0, 50)}..."`
+    );
+    const newAiAnswer = await getAiAnswer(questionText, answerTexts, apiKey);
 
-    if (refreshButton) {
-      // No need to clone and replace if we are always creating a new button
-      refreshButton.addEventListener("click", refreshAction);
-      // Initial fetch and display
-      refreshAction();
+    console.log(
+      `AI Answer received for Q${index + 1}: '${newAiAnswer}' (Full text)`
+    );
+
+    if (
+      newAiAnswer &&
+      newAiAnswer.trim() !== "" &&
+      !newAiAnswer.toLowerCase().startsWith("error:")
+    ) {
+      aiAnswerDisplay.textContent = `AI Suggestion: ${newAiAnswer}`;
+    } else if (newAiAnswer && newAiAnswer.toLowerCase().startsWith("error:")) {
+      aiAnswerDisplay.textContent = newAiAnswer;
     } else {
-      console.error(
-        "Refresh button not found after creation for UI container:",
-        uiContainerId
+      aiAnswerDisplay.textContent =
+        "AI Suggestion: No answer received or answer was empty.";
+      console.warn(
+        `AI returned empty or whitespace-only answer for Q${
+          index + 1
+        }. Original response: '${newAiAnswer}'`
       );
+    }
+  };
+
+  if (refreshButton) {
+    refreshButton.addEventListener("click", refreshAction);
+    // Set initial state for aiAnswerDisplay
+    if (extractionError) {
+      aiAnswerDisplay.textContent = `Error: ${extractionError}`;
+    } else if (questionText.startsWith("Error:")) {
+      aiAnswerDisplay.textContent = questionText;
+    } else if (answerTexts.length === 0) {
+      aiAnswerDisplay.textContent =
+        "Error: No answer options found for this question.";
+    } else {
+      refreshAction(); // Initial fetch and display if data is valid
     }
   } else {
-    console.log(
-      `  No answer elements found for this question (${
-        index + 1
-      }). mcqViewElement:`,
-      mcqViewElement
+    console.error(
+      "Refresh button not found after creation for UI container:",
+      uiContainerId
     );
   }
 }
@@ -307,8 +345,10 @@ const SCRAPE_RETRY_DELAY_MS = 1500; // Increased from 1000
 async function scrapeData(currentAttempt = 1) {
   // Check if we are in the correct frame (the one with app-root)
   if (!document.querySelector("app-root") && currentAttempt === 1) {
-    const frameContext = (window.top === window) ? "main page" : "an iframe";
-    console.log(`scrapeData: app-root not found in this frame context (${frameContext}). This script instance will not scrape. This is expected for the main page or irrelevant iframes.`);
+    const frameContext = window.top === window ? "main page" : "an iframe";
+    console.log(
+      `scrapeData: app-root not found in this frame context (${frameContext}). This script instance will not scrape. This is expected for the main page or irrelevant iframes.`
+    );
     return false; // Do not proceed if app-root is not in this document context
   }
   // If on a retry attempt, and app-root is still not there, the existing retry logic will handle it.
@@ -327,51 +367,83 @@ async function scrapeData(currentAttempt = 1) {
     console.log(`Attempt ${currentAttempt}: Checking for app-root...`);
     const appRoot = document.querySelector("app-root");
     if (appRoot && appRoot.shadowRoot) {
-      console.log(`Attempt ${currentAttempt}: app-root found, checking for page-view...`);
+      console.log(
+        `Attempt ${currentAttempt}: app-root found, checking for page-view...`
+      );
       const pageView = appRoot.shadowRoot.querySelector("page-view");
       if (pageView && pageView.shadowRoot) {
-        console.log(`Attempt ${currentAttempt}: page-view found, checking for article-view(s)...`);
-        const articleViews = pageView.shadowRoot.querySelectorAll("article-view");
+        console.log(
+          `Attempt ${currentAttempt}: page-view found, checking for article-view(s)...`
+        );
+        const articleViews =
+          pageView.shadowRoot.querySelectorAll("article-view");
         if (articleViews && articleViews.length > 0) {
-          console.log(`Attempt ${currentAttempt}: Found ${articleViews.length} article-view(s). Processing each...`);
+          console.log(
+            `Attempt ${currentAttempt}: Found ${articleViews.length} article-view(s). Processing each...`
+          );
           articleViews.forEach((articleView, i) => {
             if (articleView.shadowRoot) {
               // console.log(`Attempt ${currentAttempt}: Processing article-view #${i + 1}, checking for block-views...`); // Can be verbose
               const blockViews =
                 articleView.shadowRoot.querySelectorAll("block-view");
-              if (blockViews.length > 0){
+              if (blockViews.length > 0) {
                 blockViews.forEach((blockView, j) => {
                   if (blockView.shadowRoot) {
-                    const mcqView = blockView.shadowRoot.querySelector("mcq-view");
+                    const mcqView =
+                      blockView.shadowRoot.querySelector("mcq-view");
                     if (mcqView) {
-                      console.log(`Attempt ${currentAttempt}: mcq-view found in block-view #${j+1} of article-view #${i+1}`); // Can be verbose
+                      console.log(
+                        `Attempt ${currentAttempt}: mcq-view found in block-view #${
+                          j + 1
+                        } of article-view #${i + 1}`
+                      ); // Can be verbose
                       mcqViewElements.push(mcqView);
                     } else {
-                      console.log(`Attempt ${currentAttempt}: No mcq-view in block-view #${j+1} of article-view #${i+1}`); // Can be verbose
+                      console.log(
+                        `Attempt ${currentAttempt}: No mcq-view in block-view #${
+                          j + 1
+                        } of article-view #${i + 1}`
+                      ); // Can be verbose
                     }
                   } else {
-                    console.log(`Attempt ${currentAttempt}: block-view #${j+1} in article-view #${i+1} has no shadowRoot.`); // Can be verbose
+                    console.log(
+                      `Attempt ${currentAttempt}: block-view #${
+                        j + 1
+                      } in article-view #${i + 1} has no shadowRoot.`
+                    ); // Can be verbose
                   }
                 });
               } else {
-                console.log(`Attempt ${currentAttempt}: No block-views found in article-view #${i+1}`); // Can be verbose
+                console.log(
+                  `Attempt ${currentAttempt}: No block-views found in article-view #${
+                    i + 1
+                  }`
+                ); // Can be verbose
               }
             } else {
-              console.log(`Attempt ${currentAttempt}: article-view #${i + 1} was found, but it has no shadowRoot.`);
+              console.log(
+                `Attempt ${currentAttempt}: article-view #${
+                  i + 1
+                } was found, but it has no shadowRoot.`
+              );
               // earlyExitReason might be too broad if only one of many articleViews fails here
             }
           });
           if (mcqViewElements.length === 0 && articleViews.length > 0) {
             // This means we iterated through articleViews but found no mcqViews within them.
-            earlyExitReason = "Found article-view(s) but no mcq-view elements within their valid shadow DOM structures.";
+            earlyExitReason =
+              "Found article-view(s) but no mcq-view elements within their valid shadow DOM structures.";
             console.log(`Attempt ${currentAttempt}: ${earlyExitReason}`);
           }
         } else {
-          earlyExitReason = "page-view found, but no article-view elements within its shadowRoot.";
+          earlyExitReason =
+            "page-view found, but no article-view elements within its shadowRoot.";
           console.log(`Attempt ${currentAttempt}: ${earlyExitReason}`);
         }
       } else {
-        if (!pageView) earlyExitReason = "app-root found, but page-view not found within its shadowRoot.";
+        if (!pageView)
+          earlyExitReason =
+            "app-root found, but page-view not found within its shadowRoot.";
         else earlyExitReason = "page-view found, but it has no shadowRoot.";
         console.log(`Attempt ${currentAttempt}: ${earlyExitReason}`);
       }
@@ -421,14 +493,18 @@ async function scrapeData(currentAttempt = 1) {
     if (earlyExitReason) {
       logMessage += ` Reason: ${earlyExitReason}`;
     } else if (currentAttempt === 1) {
-        // If no earlyExitReason and it's the first attempt, it implies full traversal but no mcq-views.
-        // For subsequent attempts, earlyExitReason should ideally be set if elements are missing.
-        logMessage += ` Shadow DOM traversal completed as expected, but no mcq-view tags were identified.`;
+      // If no earlyExitReason and it's the first attempt, it implies full traversal but no mcq-views.
+      // For subsequent attempts, earlyExitReason should ideally be set if elements are missing.
+      logMessage += ` Shadow DOM traversal completed as expected, but no mcq-view tags were identified.`;
     }
     console.log(logMessage);
 
     if (currentAttempt < MAX_SCRAPE_ATTEMPTS) {
-      console.log(`Will retry in ${SCRAPE_RETRY_DELAY_MS / 1000}s... (Attempt ${currentAttempt + 1} of ${MAX_SCRAPE_ATTEMPTS})`);
+      console.log(
+        `Will retry in ${SCRAPE_RETRY_DELAY_MS / 1000}s... (Attempt ${
+          currentAttempt + 1
+        } of ${MAX_SCRAPE_ATTEMPTS})`
+      );
       // Ensure window.scrapeData is available for setTimeout context
       setTimeout(() => {
         if (typeof window.scrapeData === "function") {
@@ -442,7 +518,10 @@ async function scrapeData(currentAttempt = 1) {
       return false; // Indicate no questions found yet, but retrying
     }
     console.log(
-      `Max retry attempts (${MAX_SCRAPE_ATTEMPTS}) reached. Failed to find mcq-view elements. Last known reason: ${earlyExitReason || 'mcq-view tags not identified after full traversal on final attempt'}`
+      `Max retry attempts (${MAX_SCRAPE_ATTEMPTS}) reached. Failed to find mcq-view elements. Last known reason: ${
+        earlyExitReason ||
+        "mcq-view tags not identified after full traversal on final attempt"
+      }`
     );
     return false; // Indicate no questions found after retries
   }
@@ -467,17 +546,21 @@ if (typeof window.scrapeData !== "function") {
 const autoRunScraper = async () => {
   // First, check if we are likely in the correct frame (the one with app-root)
   if (!document.querySelector("app-root")) {
-    const frameContext = (window.top === window) ? "main page" : "an iframe";
-    console.log(`autoRunScraper: app-root not found in this frame context (${frameContext}). Auto-run aborted for this instance. This is expected for the main page or irrelevant iframes.`);
+    const frameContext = window.top === window ? "main page" : "an iframe";
+    console.log(
+      `autoRunScraper: app-root not found in this frame context (${frameContext}). Auto-run aborted for this instance. This is expected for the main page or irrelevant iframes.`
+    );
     return; // Do not proceed if app-root is not in this document context
   }
 
   // Wait for the full page to load, including scripts that might add <app-root>
-  if (document.readyState !== 'complete') {
-    await new Promise(resolve => window.addEventListener('load', resolve, { once: true }));
+  if (document.readyState !== "complete") {
+    await new Promise((resolve) =>
+      window.addEventListener("load", resolve, { once: true })
+    );
   }
   // Add a small additional delay just in case, as onload doesn't always guarantee custom elements are fully ready
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   const storedData = await chrome.storage.sync.get(["geminiApiKey"]);
   if (storedData.geminiApiKey) {
