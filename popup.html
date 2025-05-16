@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NetAcad Scraper Control</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 300px;
+      padding: 10px;
+      background-color: #f4f7f6;
+    }
+    h3 {
+      color: #0056b3;
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      color: #333;
+    }
+    input[type="text"], input[type="password"] {
+      width: calc(100% - 22px);
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 15px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 15px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #status {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 0.9em;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h3>NetAcad AI Assistant</h3>
+  
+  <label for="apiKey">Gemini API Key:</label>
+  <input type="password" id="apiKey" placeholder="Enter your Gemini API Key">
+  
+  <button id="saveKey">Save API Key</button>
+  
+  <button id="processPage">Process Questions on this Page</button>
+
+  <div id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html> 

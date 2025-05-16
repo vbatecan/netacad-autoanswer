@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "NetAcad Scraper",
+  "version": "1.0",
+  "description": "Scrapes questions and answers from NetAcad and uses AI to suggest answers.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "content_scripts": [
+    {
+      "matches": ["*://*.netacad.com/*"],
+      "js": ["content.js"],
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "images/icon-48x48.png"
+    }
+  },
+  "icons": {
+    "48": "images/icon-48x48.png"
+  }
+} 
