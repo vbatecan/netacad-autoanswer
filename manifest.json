@@ -7,7 +7,7 @@
   "content_scripts": [
     {
       "matches": ["*://*.netacad.com/*"],
-      "js": ["content.js"],
+      "js": ["api.js", "ui.js", "scraper.js", "content.js"],
       "all_frames": true
     }
   ],
