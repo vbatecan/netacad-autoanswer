@@ -33,46 +33,38 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length > 0 && tabs[0].id) {
         const tabId = tabs[0].id;
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: tabId },
-            function: () => {
-              if (typeof window.scrapeData === 'function') {
-                // The executeScript API will await this promise and return its resolved value.
-                return window.scrapeData(); 
-              } else {
-                console.error('window.scrapeData function not found in content script.');
-                return 'scrapeData_not_found'; // Specific string to indicate function missing
-              }
-            }
-          },
-          (injectionResults) => {
-            if (chrome.runtime.lastError) {
-              console.error('Error executing script: ', chrome.runtime.lastError.message);
-              statusDiv.textContent = `Scripting Error: ${chrome.runtime.lastError.message}`;
-            } else if (injectionResults && injectionResults.length > 0) {
-              const result = injectionResults[0].result;
-              if (result === true) {
+        chrome.tabs.sendMessage(tabId, { action: "processPage" }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Popup Error: Error sending message to content script: ', chrome.runtime.lastError.message);
+            statusDiv.textContent = `Error: Could not communicate with page. Details: ${chrome.runtime.lastError.message}`;
+            // This can happen if the content script isn't injected, page isn't a netacad page, or extension was reloaded.
+          } else if (response) {
+            if (response.success) {
+              if (response.result === true) {
                 statusDiv.textContent = 'Processing started on page.';
-              } else if (result === false) {
+                 console.log('Popup: Processing started successfully on page.');
+              } else if (response.result === false) {
                 statusDiv.textContent = 'Processed: No questions found on page.';
-              } else if (result === 'scrapeData_not_found') {
-                statusDiv.textContent = 'Error: Core function not found on page. Try reloading page/extension.';
-                console.error('Popup received: scrapeData_not_found');
+                console.log('Popup: Page processed, but no questions were found.');
               } else {
-                statusDiv.textContent = 'Page responded, but with unexpected result.';
-                console.log('Popup received unexpected injection result:', result);
+                statusDiv.textContent = 'Page responded, but with an unexpected result from scrapeData.';
+                console.warn('Popup: Received unexpected (but successful) response.result from content script:', response.result);
               }
-            } else {
-              statusDiv.textContent = 'Command sent, but no clear response from page.';
-              console.log('No injection results received.');
+            } else { // response.success is false
+              statusDiv.textContent = `Error on page: ${response.error || 'Unknown error'}`;
+              console.error('Popup: Received error response from content script:', response);
             }
-            setTimeout(() => statusDiv.textContent = '', 4000);
+          } else {
+            // No response and no lastError usually means no content script called sendResponse successfully.
+            // This implies no frame found app-root, or an issue in the responding frame prevented sendResponse.
+            statusDiv.textContent = 'No response from page. Is it a NetAcad quiz page with questions?';
+            console.warn('Popup: No affirmative response from any content script in the tab. Check if app-root exists in any frame.');
           }
-        );
+          setTimeout(() => { if (statusDiv.textContent !== '') statusDiv.textContent = ''; }, 4000); 
+        });
       } else {
         statusDiv.textContent = 'Error: Could not find active tab.';
-        console.error('No active tab found to execute script on.');
+        console.error('Popup Error: No active tab found to send message to.');
       }
     });
   });

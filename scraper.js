@@ -1,197 +1,163 @@
 // Constants for retry mechanism
-const MAX_SCRAPE_ATTEMPTS = 10; // Increased from 5
-const SCRAPE_RETRY_DELAY_MS = 1500; // Increased from 1000
+const MAX_SCRAPE_ATTEMPTS = 10;
+const SCRAPE_RETRY_DELAY_MS = 1500;
 
 async function scrapeData(currentAttempt = 1) {
-  // Check if we are in the correct frame (the one with app-root)
-  if (!document.querySelector("app-root") && currentAttempt === 1) {
-    const frameContext = window.top === window ? "main page" : "an iframe";
-    console.log(
-      `scrapeData: app-root not found in this frame context (${frameContext}). This script instance will not scrape. This is expected for the main page or irrelevant iframes.`
-    );
-    return false; // Do not proceed if app-root is not in this document context
-  }
-  // If on a retry attempt, and app-root is still not there, the existing retry logic will handle it.
+  // if (!document.querySelector("app-root") && currentAttempt === 1) {
+  //   const frameContext = window.top === window ? "main page" : "an iframe";
+  //   console.log(
+  //     `NetAcad Scraper (scraper.js): app-root not found in this frame context (${frameContext}). This script instance will not scrape.`
+  //   );
+  //   return false;
+  // }
 
   console.log(
-    `NetAcad Scraper: scrapeData attempt #${currentAttempt} of ${MAX_SCRAPE_ATTEMPTS}`
+    `NetAcad Scraper (scraper.js): scrapeData attempt #${currentAttempt} of ${MAX_SCRAPE_ATTEMPTS}`
   );
 
   const storedData = await chrome.storage.sync.get(["geminiApiKey"]);
   const apiKey = storedData.geminiApiKey;
 
   let mcqViewElements = [];
-  let earlyExitReason = ""; // To store a more specific reason if traversal fails early
+  let earlyExitReason = "";
 
   try {
-    console.log(`Attempt ${currentAttempt}: Checking for app-root...`);
     const appRoot = document.querySelector("app-root");
     if (appRoot && appRoot.shadowRoot) {
-      console.log(
-        `Attempt ${currentAttempt}: app-root found, checking for page-view...`
-      );
       const pageView = appRoot.shadowRoot.querySelector("page-view");
       if (pageView && pageView.shadowRoot) {
-        console.log(
-          `Attempt ${currentAttempt}: page-view found, checking for article-view(s)...`
-        );
-        const articleViews =
-          pageView.shadowRoot.querySelectorAll("article-view");
+        const articleViews = pageView.shadowRoot.querySelectorAll("article-view");
         if (articleViews && articleViews.length > 0) {
-          console.log(
-            `Attempt ${currentAttempt}: Found ${articleViews.length} article-view(s). Processing each...`
-          );
           articleViews.forEach((articleView, i) => {
             if (articleView.shadowRoot) {
-              // console.log(`Attempt ${currentAttempt}: Processing article-view #${i + 1}, checking for block-views...`); // Can be verbose
-              const blockViews =
-                articleView.shadowRoot.querySelectorAll("block-view");
-              if (blockViews.length > 0) {
-                blockViews.forEach((blockView, j) => {
-                  if (blockView.shadowRoot) {
-                    const mcqView =
-                      blockView.shadowRoot.querySelector("mcq-view");
-                    if (mcqView) {
-                      console.log(
-                        `Attempt ${currentAttempt}: mcq-view found in block-view #${
-                          j + 1
-                        } of article-view #${i + 1}`
-                      ); // Can be verbose
-                      mcqViewElements.push(mcqView);
-                    } else {
-                      console.log(
-                        `Attempt ${currentAttempt}: No mcq-view in block-view #${
-                          j + 1
-                        } of article-view #${i + 1}`
-                      ); // Can be verbose
-                    }
-                  } else {
-                    console.log(
-                      `Attempt ${currentAttempt}: block-view #${
-                        j + 1
-                      } in article-view #${i + 1} has no shadowRoot.`
-                    ); // Can be verbose
-                  }
-                });
-              } else {
-                console.log(
-                  `Attempt ${currentAttempt}: No block-views found in article-view #${
-                    i + 1
-                  }`
-                ); // Can be verbose
-              }
-            } else {
-              console.log(
-                `Attempt ${currentAttempt}: article-view #${
-                  i + 1
-                } was found, but it has no shadowRoot.`
-              );
-              // earlyExitReason might be too broad if only one of many articleViews fails here
+              const blockViews = articleView.shadowRoot.querySelectorAll("block-view");
+              blockViews.forEach((blockView, j) => {
+                if (blockView.shadowRoot) {
+                  const mcqView = blockView.shadowRoot.querySelector("mcq-view");
+                  if (mcqView) mcqViewElements.push(mcqView);
+                }
+              });
             }
           });
-          if (mcqViewElements.length === 0 && articleViews.length > 0) {
-            // This means we iterated through articleViews but found no mcqViews within them.
-            earlyExitReason =
-              "Found article-view(s) but no mcq-view elements within their valid shadow DOM structures.";
-            console.log(`Attempt ${currentAttempt}: ${earlyExitReason}`);
-          }
-        } else {
-          earlyExitReason =
-            "page-view found, but no article-view elements within its shadowRoot.";
-          console.log(`Attempt ${currentAttempt}: ${earlyExitReason}`);
-        }
-      } else {
-        if (!pageView)
-          earlyExitReason =
-            "app-root found, but page-view not found within its shadowRoot.";
-        else earlyExitReason = "page-view found, but it has no shadowRoot.";
-        console.log(`Attempt ${currentAttempt}: ${earlyExitReason}`);
-      }
-    } else {
-      if (!appRoot) earlyExitReason = "app-root not found in the document.";
-      else earlyExitReason = "app-root found, but it has no shadowRoot.";
-      console.log(`Attempt ${currentAttempt}: ${earlyExitReason}`);
-    }
+          if (mcqViewElements.length === 0) earlyExitReason = "Found article-view(s) but no mcq-view elements.";
+        } else earlyExitReason = "page-view found, but no article-view elements.";
+      } else earlyExitReason = appRoot.shadowRoot.querySelector("page-view") ? "page-view found, but no shadowRoot." : "page-view not found in app-root.";
+    } else earlyExitReason = document.querySelector("app-root") ? "app-root found, but no shadowRoot." : "app-root not found.";
   } catch (e) {
     earlyExitReason = "Exception during shadow DOM traversal.";
-    console.error(`Attempt ${currentAttempt}: ${earlyExitReason}`, e);
+    console.error(`NetAcad Scraper (scraper.js): ${earlyExitReason}`, e);
   }
 
-  // Clear previous UI elements on the first attempt
   if (currentAttempt === 1) {
-    // Clear UI from main document (fallbacks)
-    document
-      .querySelectorAll(".netacad-ai-assistant-ui[id^='netacad-ai-q-']")
-      .forEach((el) => el.remove());
-
-    // Clear UI from previously found mcqViewElements' shadow DOMs (if any were processed before a retry)
-    // This is tricky as mcqViewElements are found fresh each time.
-    // The simplest is that processSingleQuestion always creates new UI.
-    // If an old UI was there from a previous call to processSingleQuestion *within the same scrapeData session*
-    // (which doesn't happen due to fresh creation), it would be an issue.
-    // The current model is: each processSingleQuestion for an mcqView appends a *new* UI.
-    // If scrapeData is called again, it should clean up.
-    // Let's ensure mcqViewElements (if found) have their potential old UIs cleaned *before* processing.
+    document.querySelectorAll(".netacad-ai-assistant-ui[id^='netacad-ai-q-']").forEach((el) => el.remove());
     mcqViewElements.forEach((mcqView) => {
       if (mcqView && mcqView.shadowRoot) {
-        mcqView.shadowRoot
-          .querySelectorAll(".netacad-ai-assistant-ui[id^='netacad-ai-q-']")
-          .forEach((el) => el.remove());
+        mcqView.shadowRoot.querySelectorAll(".netacad-ai-assistant-ui[id^='netacad-ai-q-']").forEach((el) => el.remove());
       }
     });
   }
 
-  if (!apiKey && currentAttempt === 1) {
-    // Show API key warning only once per scrape session
-    console.warn(
-      "Gemini API Key not found in storage. Please set it in the extension popup."
-    );
-  }
-
   if (mcqViewElements.length === 0) {
-    let logMessage = `Attempt #${currentAttempt}: No mcq-view elements found.`;
-    if (earlyExitReason) {
-      logMessage += ` Reason: ${earlyExitReason}`;
-    } else if (currentAttempt === 1) {
-      // If no earlyExitReason and it's the first attempt, it implies full traversal but no mcq-views.
-      // For subsequent attempts, earlyExitReason should ideally be set if elements are missing.
-      logMessage += ` Shadow DOM traversal completed as expected, but no mcq-view tags were identified.`;
-    }
+    let logMessage = `NetAcad Scraper (scraper.js): Attempt #${currentAttempt}: No mcq-view elements found.`;
+    if (earlyExitReason) logMessage += ` Reason: ${earlyExitReason}`;
+    else if (currentAttempt === 1) logMessage += ` Shadow DOM traversal completed, but no mcq-view tags were identified.`;
     console.log(logMessage);
 
     if (currentAttempt < MAX_SCRAPE_ATTEMPTS) {
-      console.log(
-        `Will retry in ${SCRAPE_RETRY_DELAY_MS / 1000}s... (Attempt ${
-          currentAttempt + 1
-        } of ${MAX_SCRAPE_ATTEMPTS})`
-      );
-      // Ensure window.scrapeData is available for setTimeout context
-      setTimeout(() => {
-        if (typeof window.scrapeData === "function") {
-          window.scrapeData(currentAttempt + 1);
-        } else {
-          console.error(
-            "window.scrapeData not found for retry, cannot continue."
-          );
-        }
-      }, SCRAPE_RETRY_DELAY_MS);
-      return false; // Indicate no questions found yet, but retrying
+      console.log(`NetAcad Scraper (scraper.js): Will retry in ${SCRAPE_RETRY_DELAY_MS / 1000}s...`);
+      setTimeout(() => { window.scrapeData && window.scrapeData(currentAttempt + 1); }, SCRAPE_RETRY_DELAY_MS);
+      return false;
     }
-    console.log(
-      `Max retry attempts (${MAX_SCRAPE_ATTEMPTS}) reached. Failed to find mcq-view elements. Last known reason: ${
-        earlyExitReason ||
-        "mcq-view tags not identified after full traversal on final attempt"
-      }`
-    );
-    return false; // Indicate no questions found after retries
+    console.log(`NetAcad Scraper (scraper.js): Max retry attempts reached. Failed to find mcq-view elements.`);
+    return false;
   }
 
   console.log(
-    `Found ${mcqViewElements.length} mcq-view element(s) on attempt #${currentAttempt}. Attempting to process...`
+    `NetAcad Scraper (scraper.js): Found ${mcqViewElements.length} mcq-view element(s). Attempting to process...`
   );
 
-  for (const [index, mcqViewElement] of mcqViewElements.entries()) {
-    await processSingleQuestion(mcqViewElement, index, apiKey);
+  if (!apiKey) {
+    console.warn("NetAcad Scraper (scraper.js): Gemini API Key not found. Displaying message in UI.");
+    // Call processSingleQuestion for each, passing an indicator that API key is missing
+    for (const [index, mcqViewElement] of mcqViewElements.entries()) {
+      // The third argument to processSingleQuestion is apiKey, the fourth is preFetchedAiAnswer
+      await processSingleQuestion(mcqViewElement, index, null, "Error: Gemini API Key not set in popup.");
+    }
+    return true; // Processed (by showing error)
   }
-  return true; // Indicate processing happened
+
+  const allQuestionsData = [];
+  for (const [index, mcqViewElement] of mcqViewElements.entries()) {
+    // extractQuestionAndAnswers is in ui.js and should be globally available.
+    // It returns { questionText, answerElements, questionTextElement }
+    if (typeof extractQuestionAndAnswers !== 'function') {
+        console.error("NetAcad Scraper (scraper.js): extractQuestionAndAnswers function is not available!");
+        // Fallback: process each question individually with an error message, or just skip UI update
+        await processSingleQuestion(mcqViewElement, index, apiKey, "Error: Core UI function (extract) missing.");
+        continue;
+    }
+    const extractionResult = extractQuestionAndAnswers(mcqViewElement, index); // Not async
+    const answerTexts = processAnswerElements(extractionResult.answerElements, index); // Not async
+
+    if (extractionResult.questionText && !extractionResult.questionText.startsWith("Error") && answerTexts.length > 0) {
+      allQuestionsData.push({
+        question: extractionResult.questionText,
+        answers: answerTexts,
+        mcqViewElement: mcqViewElement,
+        originalIndex: index,
+        questionTextElement: extractionResult.questionTextElement // Needed for UI injection by processSingleQuestion
+      });
+    } else {
+      // If extraction fails for a question, still call processSingleQuestion to render its UI with the error.
+      // The error from extractionResult.questionText or lack of answers will be handled by processSingleQuestion.
+      console.warn(`NetAcad Scraper (scraper.js): Failed to extract valid Q&A for question ${index + 1}. Will let processSingleQuestion handle UI error.`);
+      await processSingleQuestion(mcqViewElement, index, apiKey, extractionResult.questionText); // Pass the extraction error
+    }
+  }
+
+  if (allQuestionsData.length > 0) {
+    console.log(`NetAcad Scraper (scraper.js): Extracted ${allQuestionsData.length} valid questions for batch API call.`);
+    const questionsForBatchApi = allQuestionsData.map(q => ({ question: q.question, answers: q.answers }));
+    
+    // Call processSingleQuestion for each item to set up initial UI (e.g., "Processing batch...")
+    // BEFORE making the batch API call.
+    for (const questionData of allQuestionsData) {
+        // Pass a specific message to indicate batch processing is starting
+        // processSingleQuestion will need to handle this initial state message.
+        await processSingleQuestion(questionData.mcqViewElement, questionData.originalIndex, apiKey, "BATCH_PROCESSING_STARTED");
+    }
+
+    const batchApiResponse = await getAiAnswersForBatch(questionsForBatchApi, apiKey);
+    let batchedAnswers = [];
+    let batchError = null;
+
+    if (batchApiResponse.error) {
+      console.error("NetAcad Scraper (scraper.js): Error from batch API call:", batchApiResponse.error);
+      batchError = batchApiResponse.error;
+    } else if (batchApiResponse.answers && batchApiResponse.answers.length === allQuestionsData.length) {
+      batchedAnswers = batchApiResponse.answers;
+      console.log("NetAcad Scraper (scraper.js): Successfully received batched answers.");
+    } else {
+      console.error("NetAcad Scraper (scraper.js): Mismatch in batched answers length or no answers received.");
+      batchError = "Error: AI response for batch was incomplete or malformed.";
+      if(batchApiResponse.answers) batchedAnswers = batchApiResponse.answers; // Use partial if available
+    }
+
+    // Now, update each UI with its specific answer or the batch error
+    for (let i = 0; i < allQuestionsData.length; i++) {
+      const questionData = allQuestionsData[i];
+      let finalAnswerToShow = batchError ? batchError : (batchedAnswers[i] || "Error: No specific answer in batch response.");
+      // Re-call processSingleQuestion or a dedicated update function. 
+      // For simplicity, re-calling processSingleQuestion with the fetched answer.
+      // It will re-extract, but then display the provided answer.
+      // A more optimized way would be to have a separate UI update function.
+      await processSingleQuestion(questionData.mcqViewElement, questionData.originalIndex, apiKey, finalAnswerToShow);
+    }
+  } else {
+    console.log("NetAcad Scraper (scraper.js): No valid questions extracted to send for batch processing.");
+    // If there were mcqViewElements but none yielded valid Q&A, their UIs would have been handled
+    // in the extraction loop above, displaying individual extraction errors via processSingleQuestion.
+  }
+
+  return true; // Indicate processing (or attempt thereof) happened
 } 
