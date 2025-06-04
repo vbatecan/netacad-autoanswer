@@ -3,15 +3,7 @@ const MAX_SCRAPE_ATTEMPTS = 10;
 const SCRAPE_RETRY_DELAY_MS = 1500;
 
 async function scrapeData(currentAttempt = 1) {
-  // if (!document.querySelector("app-root") && currentAttempt === 1) {
-  //   const frameContext = window.top === window ? "main page" : "an iframe";
-  //   console.log(
-  //     `NetAcad Scraper (scraper.js): app-root not found in this frame context (${frameContext}). This script instance will not scrape.`
-  //   );
-  //   return false;
-  // }
-
-  console.log(
+  console.debug(
     `NetAcad Scraper (scraper.js): scrapeData attempt #${currentAttempt} of ${MAX_SCRAPE_ATTEMPTS}`
   );
 
@@ -61,24 +53,23 @@ async function scrapeData(currentAttempt = 1) {
     let logMessage = `NetAcad Scraper (scraper.js): Attempt #${currentAttempt}: No mcq-view elements found.`;
     if (earlyExitReason) logMessage += ` Reason: ${earlyExitReason}`;
     else if (currentAttempt === 1) logMessage += ` Shadow DOM traversal completed, but no mcq-view tags were identified.`;
-    console.log(logMessage);
+    console.debug(logMessage);
 
     if (currentAttempt < MAX_SCRAPE_ATTEMPTS) {
-      console.log(`NetAcad Scraper (scraper.js): Will retry in ${SCRAPE_RETRY_DELAY_MS / 1000}s...`);
+      console.debug(`NetAcad Scraper (scraper.js): Will retry in ${SCRAPE_RETRY_DELAY_MS / 1000}s...`);
       setTimeout(() => { window.scrapeData && window.scrapeData(currentAttempt + 1); }, SCRAPE_RETRY_DELAY_MS);
       return false;
     }
-    console.log(`NetAcad Scraper (scraper.js): Max retry attempts reached. Failed to find mcq-view elements.`);
+    console.warn(`NetAcad Scraper (scraper.js): Max retry attempts reached. Failed to find mcq-view elements.`);
     return false;
   }
 
-  console.log(
+  console.debug(
     `NetAcad Scraper (scraper.js): Found ${mcqViewElements.length} mcq-view element(s). Attempting to process...`
   );
 
   if (!apiKey) {
     console.warn("NetAcad Scraper (scraper.js): Gemini API Key not found. Displaying message in UI.");
-    // Call processSingleQuestion for each, passing an indicator that API key is missing
     for (const [index, mcqViewElement] of mcqViewElements.entries()) {
       // The third argument to processSingleQuestion is apiKey, the fourth is preFetchedAiAnswer
       await processSingleQuestion(mcqViewElement, index, null, "Error: Gemini API Key not set in popup.");
@@ -96,8 +87,8 @@ async function scrapeData(currentAttempt = 1) {
         await processSingleQuestion(mcqViewElement, index, apiKey, "Error: Core UI function (extract) missing.");
         continue;
     }
-    const extractionResult = extractQuestionAndAnswers(mcqViewElement, index); // Not async
-    const answerTexts = processAnswerElements(extractionResult.answerElements, index); // Not async
+    const extractionResult = extractQuestionAndAnswers(mcqViewElement, index);
+    const answerTexts = processAnswerElements(extractionResult.answerElements, index);
 
     if (extractionResult.questionText && !extractionResult.questionText.startsWith("Error") && answerTexts.length > 0) {
       allQuestionsData.push({
@@ -116,7 +107,7 @@ async function scrapeData(currentAttempt = 1) {
   }
 
   if (allQuestionsData.length > 0) {
-    console.log(`NetAcad Scraper (scraper.js): Extracted ${allQuestionsData.length} valid questions for batch API call.`);
+    console.debug(`NetAcad Scraper (scraper.js): Extracted ${allQuestionsData.length} valid questions for batch API call.`);
     const questionsForBatchApi = allQuestionsData.map(q => ({ question: q.question, answers: q.answers }));
     
     // Call processSingleQuestion for each item to set up initial UI (e.g., "Processing batch...")
@@ -136,7 +127,7 @@ async function scrapeData(currentAttempt = 1) {
       batchError = batchApiResponse.error;
     } else if (batchApiResponse.answers && batchApiResponse.answers.length === allQuestionsData.length) {
       batchedAnswers = batchApiResponse.answers;
-      console.log("NetAcad Scraper (scraper.js): Successfully received batched answers.");
+      console.debug("NetAcad Scraper (scraper.js): Successfully received batched answers.");
     } else {
       console.error("NetAcad Scraper (scraper.js): Mismatch in batched answers length or no answers received.");
       batchError = "Error: AI response for batch was incomplete or malformed.";
@@ -154,10 +145,10 @@ async function scrapeData(currentAttempt = 1) {
       await processSingleQuestion(questionData.mcqViewElement, questionData.originalIndex, apiKey, finalAnswerToShow);
     }
   } else {
-    console.log("NetAcad Scraper (scraper.js): No valid questions extracted to send for batch processing.");
+    console.debug("NetAcad Scraper (scraper.js): No valid questions extracted to send for batch processing.");
     // If there were mcqViewElements but none yielded valid Q&A, their UIs would have been handled
     // in the extraction loop above, displaying individual extraction errors via processSingleQuestion.
   }
 
-  return true; // Indicate processing (or attempt thereof) happened
+  return true;
 } 

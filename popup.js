@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const processPageButton = document.getElementById('processPage');
   const statusDiv = document.getElementById('status');
 
-  // Load saved API key when popup opens
   chrome.storage.sync.get(['geminiApiKey'], (result) => {
     if (result.geminiApiKey) {
       apiKeyInput.value = result.geminiApiKey;
@@ -20,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (apiKey) {
       chrome.storage.sync.set({ 'geminiApiKey': apiKey }, () => {
         statusDiv.textContent = 'API Key saved!';
-        console.log('API Key saved.');
+        console.debug('API Key saved.');
         setTimeout(() => statusDiv.textContent = '', 2000);
       });
     } else {
@@ -42,15 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.success) {
               if (response.result === true) {
                 statusDiv.textContent = 'Processing started on page.';
-                 console.log('Popup: Processing started successfully on page.');
+                 console.debug('Popup: Processing started successfully on page.');
               } else if (response.result === false) {
                 statusDiv.textContent = 'Processed: No questions found on page.';
-                console.log('Popup: Page processed, but no questions were found.');
+                console.debug('Popup: Page processed, but no questions were found.');
               } else {
                 statusDiv.textContent = 'Page responded, but with an unexpected result from scrapeData.';
                 console.warn('Popup: Received unexpected (but successful) response.result from content script:', response.result);
               }
-            } else { // response.success is false
+            } else {
               statusDiv.textContent = `Error on page: ${response.error || 'Unknown error'}`;
               console.error('Popup: Received error response from content script:', response);
             }

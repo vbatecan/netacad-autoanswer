@@ -1,6 +1,5 @@
 async function getAiAnswer(question, answers, apiKey) {
   if (!apiKey) {
-    // Removed direct check for placeholder
     console.error("Error: Gemini API Key not provided to getAiAnswer.");
     return "Error: Gemini API Key not available. Please set it in the extension popup.";
   }
@@ -63,7 +62,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
     return { error: "Error: Gemini API Key not available. Please set it in the extension popup." };
   }
   if (!questionsDataArray || questionsDataArray.length === 0) {
-    console.log("getAiAnswersForBatch: No questions provided.");
+    console.debug("getAiAnswersForBatch: No questions provided.");
     return { answers: [] };
   }
 
@@ -100,7 +99,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json(); // Try to parse error response as JSON
+      const errorData = await response.json();
       console.error("Gemini API Batch Error (response.ok false):", errorData);
       return { error: `Error calling Gemini API: ${response.status} ${response.statusText}. Details: ${JSON.stringify(errorData)}` };
     }
@@ -109,16 +108,15 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
 
     if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
       const rawResponseText = data.candidates[0].content.parts[0].text;
-      console.log("Gemini API Batch Raw Response Text:", rawResponseText);
+      console.debug("Gemini API Batch Raw Response Text:", rawResponseText);
       try {
-        // The AI should return a JSON string array. We parse it.
         const parsedAnswers = JSON.parse(rawResponseText);
         if (Array.isArray(parsedAnswers) && parsedAnswers.every(ans => typeof ans === 'string')) {
           if (parsedAnswers.length === questionsDataArray.length) {
             return { answers: parsedAnswers };
           } else {
             console.error("Gemini API Batch Error: Number of answers received does not match number of questions sent.", parsedAnswers);
-            return { error: "Error: Mismatch in number of answers from AI.", answers: parsedAnswers }; // Return partial if available
+            return { error: "Error: Mismatch in number of answers from AI.", answers: parsedAnswers };
           }
         } else {
           console.error("Gemini API Batch Error: Response is not a JSON array of strings.", parsedAnswers);

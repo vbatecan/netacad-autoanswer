@@ -20,7 +20,7 @@ function createAiAssistantUI(uiContainerId, index) {
   aiAnswerDisplay.className = "ai-answer-display";
   aiAnswerDisplay.style.margin = "5px 0";
   aiAnswerDisplay.style.fontStyle = "italic";
-  aiAnswerDisplay.textContent = "Initializing..."; // Default initial status
+  aiAnswerDisplay.textContent = "Initializing...";
   uiContainer.appendChild(aiAnswerDisplay);
 
   const refreshButton = document.createElement("button");
@@ -74,7 +74,7 @@ function extractQuestionAndAnswers(mcqViewElement, index) {
             if (text.length > 20) {
               questionText = text;
               questionTextElement = el;
-              console.log(
+              console.debug(
                 `NetAcad UI: Used generic text search in base-view for question ${
                   index + 1
                 }: ${questionText}. Element: <${el.tagName}>`
@@ -114,7 +114,7 @@ function extractQuestionAndAnswers(mcqViewElement, index) {
             if (text.length > 20) {
               questionText = text;
               questionTextElement = el;
-              console.log(
+              console.debug(
                 `NetAcad UI: Used generic text search directly in mcq-view shadowRoot for question ${
                   index + 1
                 }: ${questionText}. Element: <${el.tagName}>`
@@ -156,22 +156,22 @@ function extractQuestionAndAnswers(mcqViewElement, index) {
 function processAnswerElements(answerElements, index) {
   let answerTexts = [];
   if (answerElements.length > 0) {
-    console.log("NetAcad UI: Possible Answers:");
+    console.debug("NetAcad UI: Possible Answers:");
     answerElements.forEach((answer, answerIndex) => {
       const ansText = answer.innerText.trim();
       answerTexts.push(ansText);
-      console.log(`NetAcad UI:   ${answerIndex + 1}: ${ansText}`);
+      console.debug(`NetAcad UI:   ${answerIndex + 1}: ${ansText}`);
     });
   } else {
-    console.log(`NetAcad UI: No answer elements found for question ${index + 1}.`);
+    console.debug(`NetAcad UI: No answer elements found for question ${index + 1}.`);
   }
   return answerTexts;
 }
 
 function updateUiAndLogsPostExtraction(aiAnswerDisplay, questionText, answerTexts, index) {
-  console.log(`NetAcad UI: --- Question ${index + 1} --- Details --- `);
-  console.log("NetAcad UI: Question:", questionText);
-  console.log("NetAcad UI: Answers Extracted:", answerTexts);
+  console.debug(`NetAcad UI: --- Question ${index + 1} --- Details --- `);
+  console.debug("NetAcad UI: Question:", questionText);
+  console.debug("NetAcad UI: Answers Extracted:", answerTexts);
 
   if (answerTexts.length === 0) {
     if (
@@ -201,7 +201,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
         `#${uiContainerId}`
       );
       if (oldUiInPlace) {
-        console.log(
+        console.debug(
           `NetAcad UI: Injection (Q ${
             index + 1
           }): Removing existing UI (id: ${uiContainerId}) from questionTextElement's parent.`
@@ -209,7 +209,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
         oldUiInPlace.remove();
       }
 
-      console.log(
+      console.debug(
         `NetAcad UI: Injection (Q ${index + 1}): Preparing to inject. uiContainer.id: ${
           uiContainer.id
         }, uiContainer.outerHTML (brief): ${uiContainer.outerHTML.substring(
@@ -217,7 +217,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
           100
         )}...`
       );
-      console.log(
+      console.debug(
         `NetAcad UI: Injection (Q ${index + 1}): questionTextElement is <${
           questionTextElement.tagName
         }>. Parent is <${questionTextElement.parentNode.tagName}>.`
@@ -232,7 +232,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
         `#${uiContainerId}`
       );
       if (injectedElementCheck) {
-        console.log(
+        console.debug(
           `NetAcad UI: Injection (Q ${
             index + 1
           }): SUCCESS - Injected after questionTextElement. Element #${uiContainerId} FOUND in parent. Parent: <${
@@ -247,7 +247,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
         setTimeout(() => {
           const stillThereCheck = document.getElementById(uiContainerId); // Check globally as it might have been moved
           if (stillThereCheck) {
-            console.log(
+            console.debug(
               `NetAcad UI: Injection (Q ${
                 index + 1
               }) DEFERRED CHECK: Element #${uiContainerId} IS STILL in the DOM (document.getElementById). Visible: ${!!stillThereCheck.offsetParent}`
@@ -263,7 +263,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
             } else if (rootNode) {
               hostInfo = `Parent's rootNode is <${rootNode.nodeName}>.`;
             }
-            console.log(
+            console.debug(
               `NetAcad UI: Injection (Q ${
                 index + 1
               }) DEFERRED CHECK - Parent Context: ${hostInfo}. Parent Tag: ${
@@ -309,7 +309,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
                   rootNode.nodeName || "unknown"
                 }`;
               }
-              console.log(
+              console.debug(
                 `NetAcad UI: Injection (Q ${
                   index + 1
                 }) DEFERRED CHECK - Original Parent Context: ${hostInfo}. Original Parent Tag: <${
@@ -348,7 +348,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
       );
     }
   } else {
-    console.log(
+    console.debug(
       `NetAcad UI: Injection (Q ${
         index + 1
       }): SKIPPED - questionTextElement (found: ${!!questionTextElement}) or its parentNode (parent exists: ${!!(
@@ -358,21 +358,20 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
   }
 
   if (!uiInjected && mcqViewElement && mcqViewElement.shadowRoot) {
-    // Cleanup already done at the start for mcqViewElement.shadowRoot (or should be, check logic)
-    console.log(
+    console.debug(
       `NetAcad UI: Injection (Q ${
         index + 1
       }): Attempting fallback to mcqViewElement.shadowRoot.`
     );
     mcqViewElement.shadowRoot.appendChild(uiContainer);
-    console.log(
+    console.debug(
       `NetAcad UI: Injection (Q ${
         index + 1
       }): SUCCESS - Injected into mcqViewElement.shadowRoot.`
     );
     uiInjected = true;
   } else if (!uiInjected) {
-    console.log(
+    console.debug(
       `NetAcad UI: Injection (Q ${
         index + 1
       }): SKIPPED - mcqViewElement (found: ${!!mcqViewElement}) or its shadowRoot (shadowRoot exists: ${!!(
@@ -385,7 +384,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
     const hostElement = mcqViewElement
       ? mcqViewElement.getRootNode().host
       : null;
-    console.log(
+    console.debug(
       `NetAcad UI: Injection (Q ${
         index + 1
       }): Attempting fallback via hostElement. mcqViewElement present: ${!!mcqViewElement}, hostElement: ${
@@ -393,7 +392,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
       }`
     );
     if (hostElement && hostElement.parentElement) {
-      console.log(
+      console.debug(
         `NetAcad UI: Injection (Q ${index + 1}): hostElement.parentElement: ${
           hostElement.parentElement
             ? `<${hostElement.parentElement.tagName}>`
@@ -408,7 +407,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
         existingUiByHost &&
         existingUiByHost.parentElement === hostElement.parentElement
       ) {
-        console.log(
+        console.debug(
           `NetAcad UI: Injection (Q ${
             index + 1
           }): Removing existing UI (id: ${uiContainerId}) from hostElement.parentElement.`
@@ -421,14 +420,14 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
           uiContainer,
           hostElement.nextSibling
         );
-        console.log(
+        console.debug(
           `NetAcad UI: Injection (Q ${
             index + 1
           }): SUCCESS - Injected via hostElement.parentElement, before hostElement.nextSibling.`
         );
       } else {
         hostElement.parentElement.appendChild(uiContainer);
-        console.log(
+        console.debug(
           `NetAcad UI: Injection (Q ${
             index + 1
           }): SUCCESS - Appended via hostElement.parentElement.`
@@ -436,8 +435,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
       }
       uiInjected = true;
     } else if (!uiInjected) {
-      // Only if hostElement logic didn't apply
-      console.log(
+      console.debug(
         `NetAcad UI: Injection (Q ${
           index + 1
         }): SKIPPED - hostElement (found: ${!!hostElement}) or hostElement.parentElement (found: ${!!(
@@ -450,7 +448,7 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
         existingUiInBody &&
         existingUiInBody.parentElement === document.body
       ) {
-        console.log(
+        console.debug(
           `NetAcad UI: Injection (Q ${
             index + 1
           }): Removing existing UI (id: ${uiContainerId}) from document.body.`
@@ -502,14 +500,14 @@ async function handleRefreshAction(questionText, answerTexts, apiKey, aiAnswerDi
   }
 
   aiAnswerDisplay.textContent = "Asking Gemini AI (single refresh)...";
-  console.log(
+  console.debug(
     `NetAcad UI: refreshAction for Q${
       index + 1
     }: Asking Gemini AI for question: "${questionText.substring(0, 50)}..."`
   );
   const rawAiResponse = await getAiAnswer(questionText, answerTexts, apiKey);
 
-  console.log(
+  console.debug(
     `NetAcad UI: AI Answer (single refresh) received for Q${index + 1}: '${rawAiResponse}' (Full text)`
   );
 
@@ -517,10 +515,10 @@ async function handleRefreshAction(questionText, answerTexts, apiKey, aiAnswerDi
     const individualAnswers = rawAiResponse.split('\n').map(ans => ans.trim()).filter(ans => ans.length > 0);
     if (individualAnswers.length > 1) {
       aiAnswerDisplay.innerHTML = "AI Suggestions:<br />- " + individualAnswers.join("<br />- ");
-      console.log(`NetAcad UI: Q${index + 1} (single refresh) multiple answers:`, individualAnswers);
+      console.debug(`NetAcad UI: Q${index + 1} (single refresh) multiple answers:`, individualAnswers);
     } else if (individualAnswers.length === 1) {
       aiAnswerDisplay.textContent = `AI Suggestion: ${individualAnswers[0]}`;
-      console.log(`NetAcad UI: Q${index + 1} (single refresh) single answer: ${individualAnswers[0]}`);
+      console.debug(`NetAcad UI: Q${index + 1} (single refresh) single answer: ${individualAnswers[0]}`);
     } else {
       aiAnswerDisplay.textContent = "AI Suggestion: No valid answer content received (single refresh).";
       console.warn(`NetAcad UI: Q${index + 1} (single refresh) AI response was empty or only whitespace after processing: '${rawAiResponse}'`);
@@ -548,7 +546,7 @@ async function processSingleQuestion(mcqViewElement, index, apiKey, preFetchedAi
       `#${uiContainerId}`
     );
     if (existingUiInMcqSR) {
-      console.log(
+      console.debug(
         `NetAcad UI: Removing existing UI (id: ${uiContainerId}) from mcqView SR for Q ${
           index + 1
         }`
@@ -578,7 +576,7 @@ async function processSingleQuestion(mcqViewElement, index, apiKey, preFetchedAi
   // Handle AI answer display (pre-fetched or initial call)
   if (preFetchedAiAnswer === "BATCH_PROCESSING_STARTED") {
     aiAnswerDisplay.textContent = "Batch processing... Please wait.";
-    console.log(`NetAcad UI: Q${index + 1} waiting for batched AI answer.`);
+    console.debug(`NetAcad UI: Q${index + 1} waiting for batched AI answer.`);
   } else if (preFetchedAiAnswer) { // An actual answer or error string is provided
     if (preFetchedAiAnswer.toLowerCase().startsWith("error:")) {
       aiAnswerDisplay.textContent = preFetchedAiAnswer;
@@ -589,14 +587,14 @@ async function processSingleQuestion(mcqViewElement, index, apiKey, preFetchedAi
         const individualAnswers = preFetchedAiAnswer.split(multiAnswerSeparator).map(ans => ans.trim()).filter(ans => ans.length > 0);
         if (individualAnswers.length > 0) {
           aiAnswerDisplay.innerHTML = "AI Suggestions:<br />- " + individualAnswers.join("<br />- ");
-          console.log(`NetAcad UI: Q${index + 1} (batch) multiple answers:`, individualAnswers);
+          console.debug(`NetAcad UI: Q${index + 1} (batch) multiple answers:`, individualAnswers);
         } else {
            aiAnswerDisplay.textContent = "AI Suggestion: Received multiple answer format but no valid content.";
            console.warn(`NetAcad UI: Q${index + 1} (batch) response with '///' was empty or only whitespace after processing: '${preFetchedAiAnswer}'`);
         }
       } else {
         aiAnswerDisplay.textContent = `AI Suggestion: ${preFetchedAiAnswer}`;
-        console.log(`NetAcad UI: Pre-fetched AI suggestion for Q${index + 1} (batch, single): ${preFetchedAiAnswer}`);
+        console.debug(`NetAcad UI: Pre-fetched AI suggestion for Q${index + 1} (batch, single): ${preFetchedAiAnswer}`);
       }
     }
   } else { // No pre-fetched answer, proceed with individual fetch if Q/A is valid
@@ -606,14 +604,14 @@ async function processSingleQuestion(mcqViewElement, index, apiKey, preFetchedAi
       answerTexts.length > 0 &&
       apiKey // Only try if API key is present
     ) {
-      console.log(`NetAcad UI: Q${index + 1} making individual call to AI (no pre-fetched answer).`);
+      console.debug(`NetAcad UI: Q${index + 1} making individual call to AI (no pre-fetched answer).`);
       await handleRefreshAction(questionText, answerTexts, apiKey, aiAnswerDisplay, index); // Initial fetch for non-batched
     } else if (!apiKey && questionText !== "Question text not found" && !questionText.startsWith("Error:") && answerTexts.length > 0) {
       aiAnswerDisplay.textContent = "Error: Gemini API Key not set in popup."; // Show if API key is the only thing missing for a valid Q
       console.warn(`NetAcad UI: Q${index + 1} cannot fetch AI answer - API key missing.`);
     } else {
       // If Q/A extraction itself failed, updateUiAndLogsPostExtraction already set the error message.
-      console.log(`NetAcad UI: Q${index + 1} - Initial AI call skipped due to extraction issues or missing API key. Message: ${aiAnswerDisplay.textContent}`);
+      console.debug(`NetAcad UI: Q${index + 1} - Initial AI call skipped due to extraction issues or missing API key. Message: ${aiAnswerDisplay.textContent}`);
     }
   }
 }
