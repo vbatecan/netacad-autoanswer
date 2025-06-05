@@ -1,6 +1,6 @@
-# NetAcad Scraper
+# NetAcad Assistant
 
-NetAcad Scraper is a browser extension designed to assist users on Cisco NetAcad by automatically scraping quiz questions and suggesting answers using Google Gemini AI. It streamlines the process of answering dynamically loaded NetAcad quizzes, saving time and reducing manual effort.
+NetAcad Assistant is a browser extension designed to assist users on Cisco NetAcad by automatically scraping quiz questions and suggesting answers using Google Gemini AI. It streamlines the process of answering dynamically loaded NetAcad quizzes, saving time and reducing manual effort.
 
 ## What Does It Do?
 - **Scrapes** multiple-choice questions and answer options from NetAcad quiz pages (even when questions are loaded dynamically via AJAX or iframes).
