@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusDiv.textContent = 'Processing started on page.';
                  console.debug('Popup: Processing started successfully on page.');
               } else if (response.result === false) {
-                statusDiv.textContent = 'Processed: No questions found on page.';
+                statusDiv.textContent = 'Processed: No questions found on page or Show Answers is disabled.';
                 console.debug('Popup: Page processed, but no questions were found.');
               } else {
                 statusDiv.textContent = 'Page responded, but with an unexpected result from scrapeData.';
