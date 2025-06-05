@@ -1,6 +1,5 @@
 # NetAcad Scraper
 
-## Overview
 NetAcad Scraper is a browser extension designed to assist users on Cisco NetAcad by automatically scraping quiz questions and suggesting answers using Google Gemini AI. It streamlines the process of answering dynamically loaded NetAcad quizzes, saving time and reducing manual effort.
 
 ## What Does It Do?
@@ -10,16 +9,17 @@ NetAcad Scraper is a browser extension designed to assist users on Cisco NetAcad
 - **Allows** users to refresh the AI answer for any individual question.
 - **Automatically detects** when new questions are loaded (e.g., when navigating between questions) and re-scrapes as needed.
 
-## Why Is This Significant?
+This will allow you to:
 - **Saves time:** No more copying and pasting questions into AI chatbots or searching for answers manually.
 - **Reduces API costs:** By batching questions, it minimizes the number of requests to the Gemini API.
 - **Works with dynamic content:** MutationObserver ensures the extension adapts to NetAcad's dynamic page loads and iframes.
 - **User-friendly:** Clean UI, easy setup, and one-click operation.
+> Disable this plugin if you don't want see the answer and answering the question on your own which is a good thing instead of using this tool.
 
 ## Technologies Used
 - **JavaScript (ES6+)**
 - **Chrome Extensions API (Manifest V3)**
-- **Shadow DOM and MutationObserver** for robust scraping
+- **Shadow DOM and MutationObserver** for monitoring changes from dynamic pages and scraping
 - **Google Gemini AI API** for answer suggestions
 
 ## How to Install and Use
@@ -61,6 +61,8 @@ NetAcad Scraper is a browser extension designed to assist users on Cisco NetAcad
   - Dynamically adjust prompts based on question type for better answer accuracy.
 - **User Feedback and Customization:**
   - Allow users to report missed questions or suggest improvements directly from the extension.
+- **Visiblity**
+  - Gives the ability for the user to show or not show the answer.
 
 ## Contributing
 Pull requests and suggestions are welcome! Please open an issue or PR for bug fixes, improvements, or new features.
