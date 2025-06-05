@@ -288,11 +288,6 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
               `#${uiContainerId}`
             );
             if (stillInOriginalParentCheck) {
-              console.warn(
-                `NetAcad UI: Injection (Q ${
-                  index + 1
-                }) DEFERRED CHECK: Element #${uiContainerId} NOT FOUND by document.getElementById, but IS in original parent. UI Visible (offsetParent): ${!!stillInOriginalParentCheck.offsetParent}`
-              );
               const rootNode = originalParent.getRootNode();
               let hostInfo =
                 "Original parent is not in a Shadow DOM or getRootNode is document.";
@@ -587,14 +582,11 @@ async function processSingleQuestion(mcqViewElement, index, apiKey, preFetchedAi
         const individualAnswers = preFetchedAiAnswer.split(multiAnswerSeparator).map(ans => ans.trim()).filter(ans => ans.length > 0);
         if (individualAnswers.length > 0) {
           aiAnswerDisplay.innerHTML = "AI Suggestions:<br />- " + individualAnswers.join("<br />- ");
-          console.debug(`NetAcad UI: Q${index + 1} (batch) multiple answers:`, individualAnswers);
         } else {
            aiAnswerDisplay.textContent = "AI Suggestion: Received multiple answer format but no valid content.";
-           console.warn(`NetAcad UI: Q${index + 1} (batch) response with '///' was empty or only whitespace after processing: '${preFetchedAiAnswer}'`);
         }
       } else {
         aiAnswerDisplay.textContent = `AI Suggestion: ${preFetchedAiAnswer}`;
-        console.debug(`NetAcad UI: Pre-fetched AI suggestion for Q${index + 1} (batch, single): ${preFetchedAiAnswer}`);
       }
     }
   } else { // No pre-fetched answer, proceed with individual fetch if Q/A is valid
@@ -605,12 +597,11 @@ async function processSingleQuestion(mcqViewElement, index, apiKey, preFetchedAi
       apiKey // Only try if API key is present
     ) {
       console.debug(`NetAcad UI: Q${index + 1} making individual call to AI (no pre-fetched answer).`);
-      await handleRefreshAction(questionText, answerTexts, apiKey, aiAnswerDisplay, index); // Initial fetch for non-batched
+      await handleRefreshAction(questionText, answerTexts, apiKey, aiAnswerDisplay, index);
     } else if (!apiKey && questionText !== "Question text not found" && !questionText.startsWith("Error:") && answerTexts.length > 0) {
-      aiAnswerDisplay.textContent = "Error: Gemini API Key not set in popup."; // Show if API key is the only thing missing for a valid Q
+      aiAnswerDisplay.textContent = "Error: Gemini API Key not set in popup.";
       console.warn(`NetAcad UI: Q${index + 1} cannot fetch AI answer - API key missing.`);
     } else {
-      // If Q/A extraction itself failed, updateUiAndLogsPostExtraction already set the error message.
       console.debug(`NetAcad UI: Q${index + 1} - Initial AI call skipped due to extraction issues or missing API key. Message: ${aiAnswerDisplay.textContent}`);
     }
   }

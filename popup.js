@@ -3,15 +3,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveKeyButton = document.getElementById('saveKey');
   const processPageButton = document.getElementById('processPage');
   const statusDiv = document.getElementById('status');
+  const showAnswersToggle = document.getElementById('showAnswersToggle');
 
-  chrome.storage.sync.get(['geminiApiKey'], (result) => {
+  chrome.storage.sync.get(['geminiApiKey', 'showAnswers'], (result) => {
     if (result.geminiApiKey) {
       apiKeyInput.value = result.geminiApiKey;
       statusDiv.textContent = 'API Key loaded.';
     } else {
       statusDiv.textContent = 'API Key not set.';
     }
+    if (typeof result.showAnswers === 'boolean') {
+      showAnswersToggle.checked = result.showAnswers;
+    } else {
+      showAnswersToggle.checked = true;
+    }
     setTimeout(() => { if (statusDiv.textContent === 'API Key loaded.' || statusDiv.textContent === 'API Key not set.') statusDiv.textContent = ''; }, 2000);
+  });
+
+  showAnswersToggle.addEventListener('change', () => {
+    chrome.storage.sync.set({ 'showAnswers': showAnswersToggle.checked });
   });
 
   saveKeyButton.addEventListener('click', () => {
@@ -32,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs.length > 0 && tabs[0].id) {
         const tabId = tabs[0].id;
-        chrome.tabs.sendMessage(tabId, { action: "processPage" }, (response) => {
+        chrome.tabs.sendMessage(tabId, { action: "processPage", showAnswers: showAnswersToggle.checked }, (response) => {
           if (chrome.runtime.lastError) {
             console.error('Popup Error: Error sending message to content script: ', chrome.runtime.lastError.message);
             statusDiv.textContent = `Error: Could not communicate with page. Details: ${chrome.runtime.lastError.message}`;
@@ -43,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusDiv.textContent = 'Processing started on page.';
                  console.debug('Popup: Processing started successfully on page.');
               } else if (response.result === false) {
-                statusDiv.textContent = 'Processed: No questions found on page.';
+                statusDiv.textContent = 'Processed: No questions found on page or Show Answers is disabled.';
                 console.debug('Popup: Page processed, but no questions were found.');
               } else {
                 statusDiv.textContent = 'Page responded, but with an unexpected result from scrapeData.';

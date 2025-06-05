@@ -80,10 +80,10 @@ const autoRunScraper = async () => {
   // Add a small additional delay just in case, as onload doesn't always guarantee custom elements are fully ready
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  const storedData = await chrome.storage.sync.get(["geminiApiKey"]);
-  if (storedData.geminiApiKey) {
+  const storedData = await chrome.storage.sync.get(["geminiApiKey", "showAnswers"]);
+  if (storedData.geminiApiKey && (typeof storedData.showAnswers === 'undefined' || storedData.showAnswers === true)) {
     console.debug(
-      "NetAcad Scraper: API key found. Attempting initial scrape and setting up observer."
+      "NetAcad Scraper: API key found and showAnswers enabled. Attempting initial scrape and setting up observer."
     );
     if (typeof window.scrapeData === "function") {
       await window.scrapeData(); // Perform initial scrape
@@ -93,6 +93,10 @@ const autoRunScraper = async () => {
         "NetAcad Scraper: Critical - window.scrapeData not defined for auto-run and observer setup."
       );
     }
+  } else if (storedData.geminiApiKey && storedData.showAnswers === false) {
+    console.debug(
+      "NetAcad Scraper: showAnswers is disabled. Skipping initial scrape and observer."
+    );
   } else {
     console.debug(
       "NetAcad Scraper: Page loaded. No API key. Observer not set. Use popup to set key and process."
@@ -110,6 +114,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     );
     // Check if this frame contains the app-root element
     if (document.querySelector("app-root")) {
+      if (request.hasOwnProperty('showAnswers') && request.showAnswers === false) {
+        console.debug("NetAcad Scraper (content.js): showAnswers is false, not scraping.");
+        sendResponse({ success: true, result: false, message: 'AI answers are hidden by user setting.' });
+        return false;
+      }
       console.debug(
         "NetAcad Scraper (content.js): app-root found in this frame. Calling window.scrapeData()."
       );
