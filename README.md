@@ -64,6 +64,12 @@ This will allow you to:
 - **Visiblity**
   - Gives the ability for the user to show or not show the answer.
 
+## Examples
+![Screenshot 2025-06-04 224057](https://github.com/user-attachments/assets/04809880-60f5-4e72-a66a-5412529b1d81)
+
+![Screenshot 2025-06-04 224126](https://github.com/user-attachments/assets/53845149-6347-42cc-88c6-096f35fd7d88)
+
+
 ## Contributing
 Pull requests and suggestions are welcome! Please open an issue or PR for bug fixes, improvements, or new features.
 
