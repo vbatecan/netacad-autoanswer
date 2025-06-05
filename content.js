@@ -46,7 +46,7 @@ function initMutationObserver() {
       );
     }
   } else {
-    console.warn(
+      console.warn(
       "NetAcad Scraper: MutationObserver setup failed - app-root or its shadowRoot not found. Observer will not be active."
     );
   }
@@ -55,8 +55,8 @@ function initMutationObserver() {
 if (typeof window.scrapeData !== "function") {
   if (typeof scrapeData === "function") {
     window.scrapeData = scrapeData;
-  } else {
-    console.error(
+        } else {
+          console.error(
       "scrapeData function not found in global scope. scraper.js might not have loaded correctly or before this script."
     );
   }
