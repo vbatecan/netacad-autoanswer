@@ -463,6 +463,25 @@ function injectUi(uiContainer, questionTextElement, mcqViewElement, uiContainerI
   return uiInjected;
 }
 
+function getFriendlyGeminiErrorMessage(errorString) {
+  // Handles known Gemini API error patterns
+  if (!errorString) return null;
+  if (errorString.includes('503') && errorString.toLowerCase().includes('overload')) {
+    return 'AI Suggestion: Gemini API is overloaded. Please try again later.';
+  }
+  if (errorString.includes('503') && errorString.toLowerCase().includes('unavailable')) {
+    return 'AI Suggestion: Gemini API is currently unavailable (503). Please try again later.';
+  }
+  if (errorString.includes('quota')) {
+    return 'AI Suggestion: Gemini API quota exceeded. Please check your API usage or try again later.';
+  }
+  if (errorString.includes('invalid') && errorString.toLowerCase().includes('key')) {
+    return 'AI Suggestion: Invalid Gemini API Key. Please check your key in the extension popup.';
+  }
+  // Add more patterns as needed
+  return null;
+}
+
 async function handleRefreshAction(questionText, answerTexts, apiKey, aiAnswerDisplay, index) {
   if (!aiAnswerDisplay) return;
 
@@ -519,7 +538,13 @@ async function handleRefreshAction(questionText, answerTexts, apiKey, aiAnswerDi
       console.warn(`NetAcad UI: Q${index + 1} (single refresh) AI response was empty or only whitespace after processing: '${rawAiResponse}'`);
     }
   } else if (rawAiResponse && rawAiResponse.toLowerCase().startsWith("error:")) {
-    aiAnswerDisplay.textContent = rawAiResponse; // Display the error message directly
+    // Improved error handling
+    const friendlyMsg = getFriendlyGeminiErrorMessage(rawAiResponse);
+    if (friendlyMsg) {
+      aiAnswerDisplay.textContent = friendlyMsg;
+    } else {
+      aiAnswerDisplay.textContent = rawAiResponse; // Display the error message directly
+    }
     console.error(`NetAcad UI: Error displayed for Q${index + 1} (single refresh): ${rawAiResponse}`);
   } else {
     aiAnswerDisplay.textContent =
@@ -574,7 +599,13 @@ async function processSingleQuestion(mcqViewElement, index, apiKey, preFetchedAi
     console.debug(`NetAcad UI: Q${index + 1} waiting for batched AI answer.`);
   } else if (preFetchedAiAnswer) { // An actual answer or error string is provided
     if (preFetchedAiAnswer.toLowerCase().startsWith("error:")) {
-      aiAnswerDisplay.textContent = preFetchedAiAnswer;
+      // Improved error handling
+      const friendlyMsg = getFriendlyGeminiErrorMessage(preFetchedAiAnswer);
+      if (friendlyMsg) {
+        aiAnswerDisplay.textContent = friendlyMsg;
+      } else {
+        aiAnswerDisplay.textContent = preFetchedAiAnswer;
+      }
       console.error(`NetAcad UI: Error displayed for Q${index + 1} from pre-fetched data: ${preFetchedAiAnswer}`);
     } else {
       const multiAnswerSeparator = " /// ";
