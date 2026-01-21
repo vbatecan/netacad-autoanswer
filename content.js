@@ -1,7 +1,6 @@
 console.log("NetAcad Scraper content script loaded and ready.");
 
 let debounceTimeout;
-// If the dynamic pages changes, reinitiate the scrape and wait for n amount of time to let it load first.
 function debouncedScrape() {
   clearTimeout(debounceTimeout);
   debounceTimeout = setTimeout(() => {
@@ -27,7 +26,6 @@ function debouncedScrape() {
   }, 1200);
 }
 
-// Mutation Observer to detect changes in the DOM and reinitiate the scrape. Good for dynamic pages.
 function initMutationObserver() {
   console.debug("NetAcad Scraper: Attempting to initialize MutationObserver.");
   const appRoot = document.querySelector("app-root");
@@ -84,7 +82,7 @@ const autoRunScraper = async () => {
       window.addEventListener("load", resolve, { once: true }),
     );
   }
-  
+
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const storedData = await chrome.storage.sync.get([
