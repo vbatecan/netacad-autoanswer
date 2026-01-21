@@ -38,6 +38,7 @@ This will allow you to:
 5. **Use on NetAcad:**
    - Navigate to a NetAcad quiz page.
    - Click the extension icon and press "Process Questions on this Page".
+   - Alternatively, use the keyboard shortcut **Alt+Shift+Q** (or **Option+Shift+Q** on Mac) to trigger processing without opening the popup.
    - The extension will scrape all questions, send them to Gemini AI, and display suggested answers below each question.
    - You can also refresh the AI answer for any question individually.
 

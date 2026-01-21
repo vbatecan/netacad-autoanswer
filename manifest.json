@@ -3,11 +3,22 @@
   "name": "NetAcad Scraper",
   "version": "1.0",
   "description": "Scrapes questions and answers from NetAcad and uses AI to suggest answers.",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
   "content_scripts": [
     {
-      "matches": ["*://*.netacad.com/*"],
-      "js": ["api.js", "ui.js", "scraper.js", "content.js"],
+      "matches": [
+        "*://*.netacad.com/*"
+      ],
+      "js": [
+        "api.js",
+        "ui.js",
+        "scraper.js",
+        "content.js"
+      ],
       "all_frames": true
     }
   ],
@@ -17,7 +28,19 @@
       "48": "images/icon-48x48.png"
     }
   },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "process-page-command": {
+      "suggested_key": {
+        "default": "Alt+Shift+Q",
+        "mac": "Alt+Shift+Q"
+      },
+      "description": "Process Questions on this Page"
+    }
+  },
   "icons": {
     "48": "images/icon-48x48.png"
   }
-} 
+}
