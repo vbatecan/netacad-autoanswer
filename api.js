@@ -4,7 +4,7 @@ async function getAiAnswer(question, answers, apiKey) {
     return "Error: Gemini API Key not available. Please set it in the extension popup.";
   }
 
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent`;
 
   let prompt = `Given the following multiple-choice question and its possible answers, please choose the best answer(s).
 If the question implies multiple correct answers (e.g., 'select all that apply', 'choose N correct options'), return ALL chosen answer texts, each on a new line.
@@ -25,6 +25,7 @@ Possible Answers:
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
       },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
@@ -59,7 +60,7 @@ Possible Answers:
 async function getAiAnswersForBatch(questionsDataArray, apiKey) {
   if (!apiKey) {
     console.error(
-      "Error: Gemini API Key not provided to getAiAnswersForBatch."
+      "Error: Gemini API Key not provided to getAiAnswersForBatch.",
     );
     return {
       error:
@@ -140,7 +141,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
           } else {
             console.error(
               "Gemini API Batch Error: Number of answers received does not match number of questions sent.",
-              parsedAnswers
+              parsedAnswers,
             );
             return {
               error: "Error: Mismatch in number of answers from AI.",
@@ -150,7 +151,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
         } else {
           console.error(
             "Gemini API Batch Error: Response is not a JSON array of strings.",
-            parsedAnswers
+            parsedAnswers,
           );
           return {
             error:
@@ -161,7 +162,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
         console.error(
           "Gemini API Batch Error: Failed to parse AI response as JSON.",
           rawResponseText,
-          e
+          e,
         );
         return {
           error:
@@ -172,7 +173,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
     } else {
       console.error(
         "Unexpected response structure from Gemini API for batch:",
-        data
+        data,
       );
       return {
         error:
