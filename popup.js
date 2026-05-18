@@ -9,10 +9,10 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   chrome.storage.sync.get(
-    ["geminiApiKey", "showAnswers", "processOnSwitch"],
+    ["nvidiaApiKey", "showAnswers", "processOnSwitch"],
     (result) => {
-      if (result.geminiApiKey) {
-        apiKeyInput.value = result.geminiApiKey;
+      if (result.nvidiaApiKey) {
+        apiKeyInput.value = result.nvidiaApiKey;
         statusDiv.textContent = "API Key loaded.";
       } else {
         statusDiv.textContent = "API Key not set.";
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
   saveKeyButton.addEventListener("click", () => {
     const apiKey = apiKeyInput.value.trim();
     if (apiKey) {
-      chrome.storage.sync.set({ geminiApiKey: apiKey }, () => {
+      chrome.storage.sync.set({ nvidiaApiKey: apiKey }, () => {
         statusDiv.textContent = "API Key saved!";
         console.debug("API Key saved.");
         setTimeout(() => (statusDiv.textContent = ""), 2000);

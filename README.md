@@ -2,18 +2,18 @@
 
 # NetAcad Assistant
 
-NetAcad Assistant is a browser extension designed to assist users on Cisco NetAcad by automatically scraping quiz questions and suggesting answers using Google Gemini AI. It streamlines the process of answering dynamically loaded NetAcad quizzes, saving time and reducing manual effort.
+NetAcad Assistant is a browser extension designed to assist users on Cisco NetAcad by automatically scraping quiz questions and suggesting answers using NVIDIA AI. It streamlines the process of answering dynamically loaded NetAcad quizzes, saving time and reducing manual effort.
 
 ## What Does It Do?
 - **Scrapes** multiple-choice questions and answer options from NetAcad quiz pages (even when questions are loaded dynamically via AJAX or iframes).
-- **Batches** all questions on a page and sends them in a single request to the Gemini AI API, reducing API usage and improving efficiency.
+- **Batches** all questions on a page and sends them in a single request to the NVIDIA AI API, reducing API usage and improving efficiency.
 - **Displays** AI-suggested answers directly below each question, with support for both single-answer and multi-answer (checkbox/select-all) questions.
 - **Allows** users to refresh the AI answer for any individual question.
 - **Automatically detects** when new questions are loaded (e.g., when navigating between questions) and re-scrapes as needed.
 
 This will allow you to:
 - **Saves time:** No more copying and pasting questions into AI chatbots or searching for answers manually.
-- **Reduces API costs:** By batching questions, it minimizes the number of requests to the Gemini API.
+- **Reduces API costs:** By batching questions, it minimizes the number of requests to the NVIDIA API.
 - **Works with dynamic content:** MutationObserver ensures the extension adapts to NetAcad's dynamic page loads and iframes.
 - **User-friendly:** Clean UI, easy setup, and one-click operation.
 > Disable this plugin if you don't want see the answer and answering the question on your own which is a good thing instead of using this tool.
@@ -22,35 +22,35 @@ This will allow you to:
 - **JavaScript (ES6+)**
 - **Chrome Extensions API (Manifest V3)**
 - **Shadow DOM and MutationObserver** for monitoring changes from dynamic pages and scraping
-- **Google Gemini AI API** for answer suggestions
+- **NVIDIA AI API** for answer suggestions
 
 ## How to Install and Use
 1. **Clone or Download** this repository.
-2. **Get a Google Gemini API Key:**
-   - Visit [Google AI Studio](https://aistudio.google.com/app/apikey) and generate an API key.
+2. **Get an NVIDIA API Key:**
+   - Visit [NVIDIA NIM](https://build.nvidia.com/) and generate an API key.
 3. **Load the Extension in Chrome:**
    - Go to `chrome://extensions/`.
    - Enable "Developer mode" (top right).
    - Click "Load unpacked" and select the project folder.
 4. **Set Your API Key:**
    - Click the extension icon.
-   - Enter your Gemini API key in the popup and click "Save API Key".
+   - Enter your NVIDIA API key in the popup and click "Save API Key".
 5. **Use on NetAcad:**
    - Navigate to a NetAcad quiz page.
    - Click the extension icon and press "Process Questions on this Page".
    - Alternatively, use the keyboard shortcut **Alt+Shift+Q** (or **Option+Shift+Q** on Mac) to trigger processing without opening the popup.
-   - The extension will scrape all questions, send them to Gemini AI, and display suggested answers below each question.
+   - The extension will scrape all questions, send them to NVIDIA AI, and display suggested answers below each question.
    - You can also refresh the AI answer for any question individually.
 
 ## How It Works
 - **Content Scripts:** Injected into all frames on NetAcad pages, they detect and scrape questions from the page (including inside iframes).
-- **Batching:** All questions are sent in a single API call to Gemini, which returns a JSON array of answers. This reduces API usage and speeds up processing.
+- **Batching:** All questions are sent in a single API call to NVIDIA, which returns a JSON array of answers. This reduces API usage and speeds up processing.
 - **MutationObserver:** Watches for changes in the quiz area (e.g., when navigating to a new question) and automatically re-scrapes and updates answers.
 - **Multi-Answer Support:** If a question requires multiple answers (e.g., checkboxes), the AI is instructed to return all correct answers, and the UI displays them as a list.
 - **Manual Refresh:** Each question's UI includes a "Refresh AI Answer" button for on-demand, per-question AI calls.
 
 ## API Key & Privacy
-- Your Gemini API key is stored locally in your browser's extension storage and is **never shared** with anyone except Google Gemini API.
+- Your NVIDIA API key is stored locally in your browser's extension storage and is **never shared** with anyone except NVIDIA API.
 - You can remove or change your API key at any time via the extension popup.
 
 ## Planned Improvements

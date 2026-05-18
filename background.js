@@ -34,3 +34,33 @@ chrome.commands.onCommand.addListener((command) => {
     });
   }
 });
+
+// Relay AI requests to bypass CSP restrictions on content pages
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "getAiAnswerBackground" || request.action === "getAiAnswersForBatchBackground") {
+    const { url, apiKey, body } = request;
+    
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+    .then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        sendResponse({ error: `NVIDIA API Error: ${response.status} ${response.statusText}`, details: data });
+      } else {
+        sendResponse({ data: data });
+      }
+    })
+    .catch((error) => {
+      console.error("Background Fetch Error:", error);
+      sendResponse({ error: "Error connecting to NVIDIA API. This may be a network issue or API downtime.", details: error.message });
+    });
+    
+    return true; // Keep message channel open for async response
+  }
+});

@@ -8,6 +8,9 @@
     "scripting",
     "storage"
   ],
+  "host_permissions": [
+    "https://integrate.api.nvidia.com/*"
+  ],
   "content_scripts": [
     {
       "matches": [

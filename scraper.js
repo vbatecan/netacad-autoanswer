@@ -7,8 +7,8 @@ async function scrapeData(currentAttempt = 1) {
     `NetAcad Scraper (scraper.js): scrapeData attempt #${currentAttempt} of ${MAX_SCRAPE_ATTEMPTS}`
   );
 
-  const storedData = await chrome.storage.sync.get(["geminiApiKey"]);
-  const apiKey = storedData.geminiApiKey;
+  const storedData = await chrome.storage.sync.get(["nvidiaApiKey"]);
+  const apiKey = storedData.nvidiaApiKey;
 
   let mcqViewElements = [];
   let earlyExitReason = "";
@@ -69,10 +69,10 @@ async function scrapeData(currentAttempt = 1) {
   );
 
   if (!apiKey) {
-    console.warn("NetAcad Scraper (scraper.js): Gemini API Key not found. Displaying message in UI.");
+    console.warn("NetAcad Scraper (scraper.js): NVIDIA API Key not found. Displaying message in UI.");
     for (const [index, mcqViewElement] of mcqViewElements.entries()) {
       // The third argument to processSingleQuestion is apiKey, the fourth is preFetchedAiAnswer
-      await processSingleQuestion(mcqViewElement, index, null, "Error: Gemini API Key not set in popup.");
+      await processSingleQuestion(mcqViewElement, index, null, "Error: NVIDIA API Key not set in popup.");
     }
     return true; // Processed (by showing error)
   }

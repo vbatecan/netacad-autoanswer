@@ -3,7 +3,7 @@
 Welcome! This document is for developers who want to contribute to the NetAcad Scraper browser extension.
 
 ## Project Structure
-- `api.js` — Handles all communication with the Gemini AI API (single and batch answer requests).
+- `api.js` — Handles all communication with the NVIDIA AI API (single and batch answer requests).
 - `scraper.js` — Scrapes questions and answers from the NetAcad DOM, batches them, and coordinates UI updates.
 - `ui.js` — Manages the UI for each question, including answer display, refresh, and extraction helpers.
 - `content.js` — Entry point for content scripts; sets up mutation observers, message listeners, and orchestrates scraping.
@@ -19,7 +19,7 @@ Welcome! This document is for developers who want to contribute to the NetAcad S
    - Go to `chrome://extensions/`
    - Enable Developer Mode
    - Click "Load unpacked" and select the project folder
-4. **Get a Gemini API key** from [Google AI Studio](https://aistudio.google.com/app/apikey) and set it in the extension popup
+4. **Get an NVIDIA API key** from [NVIDIA NIM](https://build.nvidia.com/) and set it in the extension popup
 5. **Open a NetAcad quiz page** and use the extension
 
 ## Coding Conventions

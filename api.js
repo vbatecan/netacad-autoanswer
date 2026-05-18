@@ -1,10 +1,10 @@
-const GEMINI_MODEL = "gemini-2.5-flash";
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const NVIDIA_MODEL = "nvidia/nemotron-3-super-120b-a12b";
+const API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
 
 async function getAiAnswer(question, answers, apiKey) {
   if (!apiKey) {
-    console.error("Error: Gemini API Key not provided to getAiAnswer.");
-    return "Error: Gemini API Key not available. Please set it in the extension popup.";
+    console.error("Error: NVIDIA API Key not provided to getAiAnswer.");
+    return "Error: NVIDIA API Key not available. Please set it in the extension popup.";
   }
 
   let prompt = `Given the following multiple-choice question and its possible answers, please choose the best answer(s).
@@ -21,51 +21,55 @@ Possible Answers:
     prompt += `${i + 1}. ${ans}\n`;
   });
 
+  const body = {
+    model: NVIDIA_MODEL,
+    messages: [{ role: "user", content: prompt }],
+    temperature: 1,
+    top_p: 0.95,
+    max_tokens: 16384,
+    reasoning_budget: 16384,
+    chat_template_kwargs: { "enable_thinking": true }
+  };
+
   try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
+    const response = await new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { action: "getAiAnswerBackground", url: API_URL, apiKey, body },
+        (res) => resolve(res)
+      );
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Gemini API Error:", errorData);
-      return `Error calling Gemini API: ${response.status} ${response.statusText}. Check console. Key might be invalid or quota exceeded.`;
+    if (response.error) {
+      console.error("NVIDIA API Error via Background:", response.error, response.details);
+      return response.error;
     }
 
-    const data = await response.json();
+    const data = response.data;
     if (
-      data.candidates &&
-      data.candidates.length > 0 &&
-      data.candidates[0].content &&
-      data.candidates[0].content.parts &&
-      data.candidates[0].content.parts.length > 0
+      data.choices &&
+      data.choices.length > 0 &&
+      data.choices[0].message &&
+      data.choices[0].message.content
     ) {
-      return data.candidates[0].content.parts[0].text.trim();
+      return data.choices[0].message.content.trim();
     } else {
-      console.error("Unexpected response structure from Gemini API:", data);
-      return "Error: Could not extract answer from Gemini response structure.";
+      console.error("Unexpected response structure from NVIDIA API:", data);
+      return "Error: Could not extract answer from NVIDIA response structure.";
     }
   } catch (error) {
-    console.error("Error fetching from Gemini API:", error);
-    return "Error connecting to Gemini API. Check console for details.";
+    console.error("Error communicating with background script for AI:", error);
+    return "Error: Internal extension communication failure.";
   }
 }
 
 async function getAiAnswersForBatch(questionsDataArray, apiKey) {
   if (!apiKey) {
     console.error(
-      "Error: Gemini API Key not provided to getAiAnswersForBatch.",
+      "Error: NVIDIA API Key not provided to getAiAnswersForBatch.",
     );
     return {
       error:
-        "Error: Gemini API Key not available. Please set it in the extension popup.",
+        "Error: NVIDIA API Key not available. Please set it in the extension popup.",
     };
   }
   if (!questionsDataArray || questionsDataArray.length === 0) {
@@ -94,44 +98,50 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
   prompt += JSON.stringify(questionsForPrompt, null, 2);
   prompt += "\n```";
 
+  const body = {
+    model: NVIDIA_MODEL,
+    messages: [{ role: "user", content: prompt }],
+    temperature: 1,
+    top_p: 0.95,
+    max_tokens: 16384,
+    reasoning_budget: 16384,
+    chat_template_kwargs: { "enable_thinking": true }
+  };
+
   try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-        },
-      }),
+    const response = await new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { action: "getAiAnswersForBatchBackground", url: API_URL, apiKey, body },
+        (res) => resolve(res)
+      );
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Gemini API Batch Error (response.ok false):", errorData);
-      return {
-        error: `Error calling Gemini API: ${response.status} ${
-          response.statusText
-        }. Details: ${JSON.stringify(errorData)}`,
-      };
+    if (response.error) {
+      console.error("NVIDIA API Batch Error via Background:", response.error, response.details);
+      return { error: response.error };
     }
 
-    const data = await response.json();
+    const data = response.data;
 
     if (
-      data.candidates &&
-      data.candidates.length > 0 &&
-      data.candidates[0].content &&
-      data.candidates[0].content.parts &&
-      data.candidates[0].content.parts.length > 0
+      data.choices &&
+      data.choices.length > 0 &&
+      data.choices[0].message &&
+      data.choices[0].message.content
     ) {
-      const rawResponseText = data.candidates[0].content.parts[0].text;
-      console.debug("Gemini API Batch Raw Response Text:", rawResponseText);
+      const rawResponseText = data.choices[0].message.content;
+      console.debug("NVIDIA API Batch Raw Response Text:", rawResponseText);
       try {
-        const parsedAnswers = JSON.parse(rawResponseText);
+        let parsedAnswers = JSON.parse(rawResponseText);
+        
+        // Handle case where AI might wrap the array in an object
+        if (!Array.isArray(parsedAnswers) && typeof parsedAnswers === 'object') {
+           const keys = Object.keys(parsedAnswers);
+           if (keys.length === 1 && Array.isArray(parsedAnswers[keys[0]])) {
+             parsedAnswers = parsedAnswers[keys[0]];
+           }
+        }
+
         if (
           Array.isArray(parsedAnswers) &&
           parsedAnswers.every((ans) => typeof ans === "string")
@@ -140,7 +150,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
             return { answers: parsedAnswers };
           } else {
             console.error(
-              "Gemini API Batch Error: Number of answers received does not match number of questions sent.",
+              "NVIDIA API Batch Error: Number of answers received does not match number of questions sent.",
               parsedAnswers,
             );
             return {
@@ -150,7 +160,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
           }
         } else {
           console.error(
-            "Gemini API Batch Error: Response is not a JSON array of strings.",
+            "NVIDIA API Batch Error: Response is not a JSON array of strings.",
             parsedAnswers,
           );
           return {
@@ -160,7 +170,7 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
         }
       } catch (e) {
         console.error(
-          "Gemini API Batch Error: Failed to parse AI response as JSON.",
+          "NVIDIA API Batch Error: Failed to parse AI response as JSON.",
           rawResponseText,
           e,
         );
@@ -172,18 +182,19 @@ async function getAiAnswersForBatch(questionsDataArray, apiKey) {
       }
     } else {
       console.error(
-        "Unexpected response structure from Gemini API for batch:",
+        "Unexpected response structure from NVIDIA API for batch:",
         data,
       );
       return {
         error:
-          "Error: Could not extract answers from Gemini batch response structure.",
+          "Error: Could not extract answers from NVIDIA batch response structure.",
       };
     }
   } catch (error) {
-    console.error("Error fetching from Gemini API for batch:", error);
-    return {
-      error: "Error connecting to Gemini API for batch. Check console.",
-    };
+    console.error("Error communicating with background script for batch AI:", error);
+    return { error: "Error: Internal extension communication failure." };
   }
 }
+
+
+

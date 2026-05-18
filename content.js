@@ -86,11 +86,11 @@ const autoRunScraper = async () => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const storedData = await chrome.storage.sync.get([
-    "geminiApiKey",
+    "nvidiaApiKey",
     "showAnswers",
   ]);
   if (
-    storedData.geminiApiKey &&
+    storedData.nvidiaApiKey &&
     (typeof storedData.showAnswers === "undefined" ||
       storedData.showAnswers === true)
   ) {
@@ -105,7 +105,7 @@ const autoRunScraper = async () => {
         "NetAcad Scraper: Critical - window.scrapeData not defined for auto-run and observer setup.",
       );
     }
-  } else if (storedData.geminiApiKey && storedData.showAnswers === false) {
+  } else if (storedData.nvidiaApiKey && storedData.showAnswers === false) {
     console.debug(
       "NetAcad Scraper: showAnswers is disabled. Skipping initial scrape and observer.",
     );
